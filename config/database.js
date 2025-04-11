@@ -1,18 +1,20 @@
 const { Sequelize } = require('sequelize');
-const dbName = env('DB_NAME');
-const username = env('DB_USER');
-const password = env('DB_PASSWORD');
-const host = env('DB_HOST');
-const protocol = env('DB_PROTOCOL');
- 
+const dbName = process.env.DB_NAME;
+const username = process.env.DB_USER;
+const password = process.env.DB_PASSWORD;
+const host = process.env.DB_HOST;
+const protocol = process.env.DB_PROTOCOL;
+
 const sequelize = new Sequelize(dbName, username, password, {
     host: host,
     dialect: protocol,
+    pool: {
+        max: 10,         // max connections in pool
+        min: 0,          // min connections in pool
+        acquire: 30000,  // max time (ms) pool will try to get connection before throwing error
+        idle: 10000      // max time (ms) a connection can be idle before being released
+      },
 });
-  
-sequelize.authenticate()
-    .then(() => console.log('Database connected successfully'))
-    .catch((error) => console.error('Database connection error:', error));
-  
+
+
 module.exports = sequelize;
-  
