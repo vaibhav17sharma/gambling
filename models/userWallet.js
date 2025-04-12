@@ -1,15 +1,9 @@
 'use strict';
-const {
-  Model,
-  DOUBLE
-} = require('sequelize');
+const { DataTypes, Model } = require('sequelize');
+const sequelize = require('../config/database');
 
 class UserWallet extends Model {
-  /**
-   * Helper method for defining associations.
-   * This method is not a part of Sequelize lifecycle.
-   * The `models/index` file will call this method automatically.
-   */
+ 
   static associate(models) {
     // define association here
   }
@@ -37,16 +31,16 @@ UserWallet.init({
     onUpdate: 'CASCADE'
   },
   deleted_at : {
-    type : DataTypes.Date,
+    type : DataTypes.DATE,
     defaultValue : null,
   },
   created_at: {
     allowNull: false,
-    type: Sequelize.DATE
+    type: DataTypes.DATE
   },
   updated_at: {
     allowNull: true,
-    type: Sequelize.DATE
+    type: DataTypes.DATE
   }
 }, {
   sequelize,
@@ -56,3 +50,5 @@ UserWallet.init({
   timestamps: true, // Automatically adds `createdAt` and `updatedAt`
   paranoid: true,   // Enables soft delete by using `deletedAt`
 });
+
+module.exports = UserWallet;

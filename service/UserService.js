@@ -10,7 +10,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 async function login(req, res) {
     try {
         const{username,password}=req.body;
-        const user = await UserModel.findOne({ where: { username },attributes: ['id', 'email', 'password'] });    
+        const user = await UserModel.findOne({ where: { username },attributes: ['id', 'email', 'password','username'] });    
         if (!user) {
             return failureResp(res, "User does not exist.", 200);
         }
@@ -22,7 +22,7 @@ async function login(req, res) {
 
         const token = generateToken(user);
         return {
-            user: { id: user.id, email: user.email },
+            user: { id: user.id, email: user.email, username: user.username },
             token
         };
     } catch (error) {
