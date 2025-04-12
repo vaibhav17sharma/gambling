@@ -1,5 +1,5 @@
 const UserModel = require('../models/user');
-const {sucessResp , failureResp, successResp} = require('../utils/response');
+const {failureResp, successResp} = require('../utils/response');
 const bcrypt = require('bcrypt');
 const UserService= require('../service/UserService');
 const saltRounds =  parseInt(process.env.SALT_ROUNDS || '10', 10);
@@ -15,7 +15,6 @@ async function signup(req, res, next) {
     //TODO : check for email as well
     let user = await UserModel.findOne({where : {username : username}});
 
-    console.log(user);
     if(user) {
         return failureResp(res, "User already exists.", 200);  
     }
