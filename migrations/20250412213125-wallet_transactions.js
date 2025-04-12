@@ -21,12 +21,24 @@ module.exports = {
         defaultValue: 0,
         allowNull: false,
       },
-      wallet_id: {
+      user_wallet_id: {
         type: Sequelize.BIGINT,
         allowNull : true,
         references : {
           model: {
             tableName: 'user_wallet',
+            // schema: 'schema',
+          },
+          key: 'id',
+        },
+        onUpdate: 'CASCADE'
+      },
+      admin_wallets_id: {
+        type: Sequelize.BIGINT,
+        allowNull : true,
+        references : {
+          model: {
+            tableName: 'admin_wallets',
             // schema: 'schema',
           },
           key: 'id',

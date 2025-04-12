@@ -2,6 +2,7 @@ const UserModel = require('../models/user');
 const UserWallet = require('../models/userWallet');
 const AdminWallets = require('../models/adminWallets');
 const { successResp, failureResp } = require('../utils/response');
+const Sequelize = require('sequelize'); 
 
 async function getUserProfile(req, res, next) {
 
@@ -39,7 +40,12 @@ async function getUserBalance(req, res, next) {
 
 async function getPaymentQrCode(req, res, next) {
     const adminWalletId = req.body.id;
-    const adminWallet = await AdminWallets.findOne({where: {id:adminWalletId}, attributes: ['qr_image']});
+    
+    const adminWallet = await AdminWallets.findOne({
+        where:  Sequelize.where(Sequelize.col('ttl_trxn_amount'), '<', Sequelize.col('max_txn_amount')), 
+        order: Sequelize.literal('RAND()'),
+        attributes: ['qr_image']
+    });
 
     if(!adminWallet) {
         return failureResp(res, "Admin wallet not found.");
