@@ -8,7 +8,7 @@ const userController = require('../controllers/userController');
 
 router.get('/balance', UserController.getUserBalance);
 router.get('/profile', userController.getUserProfile);
-router.get('/paymentQrCode', userController.getPaymentQrCode);
+router.get('/paymentQRCode', userController.getPaymentQrCode);
 
 module.exports = router;
  
