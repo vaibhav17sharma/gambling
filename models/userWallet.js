@@ -51,7 +51,7 @@ UserWallet.init({
 }, {
   sequelize,
   modelName: 'UserWallet',
-  tableName: 'user_wallets', // Optional: explicitly set table name
+  tableName: 'user_wallet', // Optional: explicitly set table name
   underscored: true,
   timestamps: true, // Automatically adds `createdAt` and `updatedAt`
   paranoid: true,   // Enables soft delete by using `deletedAt`

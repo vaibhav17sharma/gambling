@@ -2,7 +2,7 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('user_wallets', {
+    await queryInterface.createTable('user_wallet', {
       id: {
         type: Sequelize.BIGINT,
         primaryKey: true,
@@ -41,6 +41,6 @@ module.exports = {
     });
   },
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable('user_wallets');
+    await queryInterface.dropTable('user_wallet');
   }
 };
