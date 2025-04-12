@@ -1,5 +1,6 @@
 const UserModel = require('../models/user');
 const UserWallet = require('../models/userWallet');
+const AdminWallets = require('../models/adminWallets');
 const { successResp, failureResp } = require('../utils/response');
 
 async function getUserProfile(req, res, next) {
@@ -17,8 +18,6 @@ async function getUserBalance(req, res, next) {
 
     // Assuming you have a User model and a way to get the user's balance
     const userId = req.user.id; // Assuming you have user ID in req.user after authentication
-    console.log(req.user.id); // Log the user ID for debugging
-
 
     try {
         const user = await UserWallet.findOne({ where: { id: userId, deleted_at: null }, attributes: ['avl_amount'] });
@@ -33,12 +32,23 @@ async function getUserBalance(req, res, next) {
         }
         return successResp(res, "User balance retrieved successfully.", 200, { user: userDetails });
     } catch (error) {
-        console.error("Error retrieving user balance:", error);
+        // console.error("Error retrieving user balance:", error);
         return failureResp(res, "An error occurred while retrieving the balance.", 500);
     }
 }
 
+async function getPaymentQrCode(req, res, next) {
+    const adminWalletId = req.body.id;
+    const adminWallet = await AdminWallets.findOne({where: {id:adminWalletId}, attributes: ['qr_image']});
+
+    if(!adminWallet) {
+        return failureResp(res, "Admin wallet not found.");
+    }
+
+    return successResp(res, "Payment QR Code.", 200, {qr_image : adminWallet['qr_image']});
+}
+
 
 module.exports = {
-    getUserProfile, getUserBalance
+    getUserProfile, getUserBalance, getPaymentQrCode
 };

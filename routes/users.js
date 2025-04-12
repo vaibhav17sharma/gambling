@@ -1,11 +1,14 @@
 var express = require('express');
 var router = express.Router();
-var UserController = require('../controllers/userController');
+
+const userModel = require('../models/user');
+const userController = require('../controllers/userController');
 
 /* GET users listing. */
-router.get('/auth', function (req, res, next) {
-  res.send('respond with a resource');
-});
+
 router.get('/balance', UserController.getUserBalance);
+router.get('/profile', userController.getUserProfile);
+router.get('/paymentQrCode', userController.getPaymentQrCode);
 
 module.exports = router;
+ 
