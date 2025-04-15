@@ -1,6 +1,7 @@
 const UserModel = require('../models/user');
 const UserWallet = require('../models/userWallet');
 const AdminWallets = require('../models/adminWallets');
+const userAccountModel = require('../models/userAccounts');
 const { successResp, failureResp } = require('../utils/response');
 const Sequelize = require('sequelize'); 
 
@@ -54,7 +55,21 @@ async function getPaymentQrCode(req, res, next) {
     return successResp(res, "Payment QR Code.", 200, {qr_image : adminWallet['qr_image']});
 }
 
+async function saveUserAccount(req, res, next) {
+    const userId = req.user.id;
+    const{ account_number, ifsc_code,bank_name } = req.body;
+    const userAccount = await userAccountModel.findOne({ where: { user_id: userId ,account_number:account_number} });
+    if (userAccount) {
+        return failureResp(res, "User account already exists.", 200);
+    }
+    const newUserAccount = await userAccountModel.create({ user_id: userId, account_number, ifsc_code, bank_name });
+    if (!newUserAccount) {
+        return failureResp(res, "Failed to save user account.", 200);
+    }
+    return successResp(res, "User account saved successfully.", 200, { userAccount: newUserAccount });
+}
+
 
 module.exports = {
-    getUserProfile, getUserBalance, getPaymentQrCode
+    getUserProfile, getUserBalance, getPaymentQrCode,saveUserAccount
 };

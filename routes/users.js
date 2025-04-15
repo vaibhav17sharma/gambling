@@ -6,9 +6,10 @@ const userController = require('../controllers/userController');
 
 /* GET users listing. */
 
-router.get('/balance', UserController.getUserBalance);
+router.get('/balance', userController.getUserBalance);
 router.get('/profile', userController.getUserProfile);
 router.get('/paymentQRCode', userController.getPaymentQrCode);
+router.post('/user-accounts', userController.saveUserAccount);
 
 module.exports = router;
  
