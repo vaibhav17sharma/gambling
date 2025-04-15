@@ -16,7 +16,7 @@ async function signup(req, res, next) {
     let user = await UserModel.findOne({where : {username : username}});
 
     if(user) {
-        return failureResp(res, "User already exists.", 200);  
+        return failureResp(res, "User already exists.");  
     }
 
 
@@ -24,7 +24,7 @@ async function signup(req, res, next) {
    
     user = await UserModel.create({ username , password:passHash, first_name, last_name,  email});
     
-   return successResp(res, "User created successfuly.", 201);
+   return successResp(res, "User created successfuly.", 200);
 }
 
  async function login(req,res,next){
@@ -34,7 +34,7 @@ async function signup(req, res, next) {
     }
     const userDetails=await UserService.login(req,res);
     if(!userDetails){
-        return failureResp(res, "User does not exist.", 200);
+        return failureResp(res, "User does not exist.");
     }
     return successResp(res, "User logged in successfully.", 200, userDetails);
  }
