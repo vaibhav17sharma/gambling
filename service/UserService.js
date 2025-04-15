@@ -12,12 +12,12 @@ async function login(req, res) {
         const{username,password}=req.body;
         const user = await UserModel.findOne({ where: { username },attributes: ['id', 'email', 'password','username'] });    
         if (!user) {
-            return failureResp(res, "User does not exist.", 200);
+            return failureResp(res, "User does not exist.", 409);
         }
 
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return failureResp(res, "Invalid password.", 200);
+            return failureResp(res, "Invalid password.", 409);
         }
 
         const token = generateToken(user);
