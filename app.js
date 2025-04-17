@@ -12,6 +12,7 @@ const authenticateMiddleware = require('./middlewares/authentication');
 const indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
 const authRouter = require('./routes/authentication');
+const couponRouter = require('./routes/coupons');
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api', indexRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/user', authenticateMiddleware, usersRouter);
+app.use('/api/coupon', authenticateMiddleware, couponRouter);
 
 app.use((req, res, next) => {
   next(createError(404));
