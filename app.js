@@ -12,11 +12,15 @@ const authenticateMiddleware = require('./middlewares/authentication');
 const indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
 const authRouter = require('./routes/authentication');
-const couponRouter = require('./routes/coupons');
+const couponRouter = require('./routes/coupon');
+
 
 const app = express();
 
 app.use(cors());
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'jade');
+
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

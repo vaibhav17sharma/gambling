@@ -17,6 +17,10 @@ module.exports = {
         autoIncrement: true,
         allowNull: false,
       },
+      coupon_name: {
+        type: Sequelize.STRING,
+        allowNull: false,
+      },
       price : {
         type: Sequelize.DOUBLE,
         defaultValue: 0,
@@ -24,6 +28,16 @@ module.exports = {
       },
       spin_days : {
         type : Sequelize.INTEGER,
+        allowNull: false,
+      },
+      min_prize_amount : {
+        type: Sequelize.DOUBLE,
+        defaultValue: 0,
+        allowNull: false,
+      },
+      max_prize_amount : {
+        type: Sequelize.DOUBLE,
+        defaultValue: 0,
         allowNull: false,
       },
       created_at: {

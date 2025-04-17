@@ -1,8 +1,6 @@
 'use strict';
-const {
-  Model,
-  DataTypes
-} = require('sequelize');
+const { DataTypes, Model } = require('sequelize');
+const sequelize = require('../config/database');
 
 class Spins extends Model {
   /**

@@ -34,7 +34,7 @@ async function signup(req, res, next) {
     }
     const userDetails=await UserService.login(req,res);
     if(!userDetails){
-        return failureResp(res, "User does not exist.");
+        return failureResp(res, "User does not exist.",409);
     }
     return successResp(res, "User logged in successfully.", 200, userDetails);
  }
