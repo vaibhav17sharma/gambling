@@ -51,4 +51,4 @@ Coupons.init({
   paranoid: true,   // Enables soft delete by using `deletedAt`
 });
 
-return Coupons;
+module.exports = Coupons;

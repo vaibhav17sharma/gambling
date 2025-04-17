@@ -4,7 +4,7 @@ const {
   DataTypes
 } = require('sequelize');
 
-class Spins extends Model {
+class UserCoupons extends Model {
   /**
    * Helper method for defining associations.
    * This method is not a part of Sequelize lifecycle.
@@ -15,28 +15,36 @@ class Spins extends Model {
   }
 }
 
-Spins.init({
+UserCoupons.init({
     id: {
         type: DataTypes.BIGINT,
         primaryKey: true,
         autoIncrement: true,
         allowNull: false,
       },
-      user_coupon_id: {
+      user_id: {
         type: DataTypes.BIGINT,
         allowNull : true,
         references : {
           model: {
-            tableName: 'user_coupons',
+            tableName: 'users',
             // schema: 'schema',
           },
           key: 'id',
         },
         onUpdate: 'CASCADE'
       },
-      prize_amount : {
-        type : DataTypes.DOUBLE,
-        allowNull: false,
+      coupon_id: {
+        type: DataTypes.BIGINT,
+        allowNull : true,
+        references : {
+          model: {
+            tableName: 'coupons',
+            // schema: 'schema',
+          },
+          key: 'id',
+        },
+        onUpdate: 'CASCADE'
       },
       created_at: {
         allowNull: false,
@@ -52,11 +60,11 @@ Spins.init({
       },
 }, {
   sequelize,
-  modelName: 'Spins',
-  tableName: 'spins', // Optional: explicitly set table name
+  modelName: 'UserCoupons',
+  tableName: 'user_coupons', // Optional: explicitly set table name
   underscored: true,
   timestamps: true, // Automatically adds `createdAt` and `updatedAt`
   paranoid: true,   // Enables soft delete by using `deletedAt`
 });
 
-module.exports = Spins;
+module.exports = UserCoupons;
