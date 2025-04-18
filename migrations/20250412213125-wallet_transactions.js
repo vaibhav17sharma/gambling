@@ -45,6 +45,14 @@ module.exports = {
         },
         onUpdate: 'CASCADE'
       },
+      type: {
+        type: Sequelize.ENUM('debit', 'credit'),
+        allowNull: false
+      },
+      description:{
+        type:Sequelize.TEXT,
+        allowNull: true,
+      },
       created_at: {
         allowNull: false,
         type: Sequelize.DATE,

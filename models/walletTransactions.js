@@ -1,8 +1,6 @@
 'use strict';
-const {
-  Model,
-  DOUBLE
-} = require('sequelize');
+const { DataTypes, Model } = require('sequelize');
+const sequelize = require('../config/database');
 
 class WalletTransactions extends Model {
   /**
@@ -22,22 +20,52 @@ WalletTransactions.init({
     autoIncrement: true,
     allowNull: false,
   },
-  transaction_amount : {
+  transaction_amount: {
     type: DataTypes.DOUBLE,
     defaultValue: 0,
     allowNull: false,
   },
-  wallet_id: {
+  user_wallet_id: {
     type: DataTypes.BIGINT,
+    allowNull: true,
+    references: {
+      model: {
+        tableName: 'user_wallet',
+        // schema: 'schema',
+      },
+      key: 'id',
+    },
+    onUpdate: 'CASCADE'
+  },
+  admin_wallets_id: {
+    type: DataTypes.BIGINT,
+    allowNull: true,
+    references: {
+      model: {
+        tableName: 'admin_wallets',
+        // schema: 'schema',
+      },
+      key: 'id',
+    },
+    onUpdate: 'CASCADE'
   },
   deleted_at : {
-    type : DataTypes.Date,
+    type : DataTypes.DATE,
+    defaultValue : null,
+  },
+  type: {
+    type: DataTypes.ENUM('debit', 'credit'),
+    allowNull: false
+  },
+  description: {
+    type: DataTypes.TEXT,
+    allowNull: true,
   },
   created_at: {
-    type: Sequelize.DATE
+    type: DataTypes.DATE
   },
   updated_at: {
-    type: Sequelize.DATE
+    type: DataTypes.DATE
   }
 }, {
   sequelize,
@@ -47,3 +75,5 @@ WalletTransactions.init({
   timestamps: true, // Automatically adds `createdAt` and `updatedAt`
   paranoid: true,   // Enables soft delete by using `deletedAt`
 });
+
+module.exports = WalletTransactions;
