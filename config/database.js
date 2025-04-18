@@ -8,6 +8,7 @@ const protocol = process.env.DB_PROTOCOL;
 const sequelize = new Sequelize(dbName, username, password, {
     host: host,
     dialect: protocol,
+    timezone: '+00:00',
     pool: {
         max: 10,         // max connections in pool
         min: 0,          // min connections in pool

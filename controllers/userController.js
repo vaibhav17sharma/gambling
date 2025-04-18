@@ -69,7 +69,72 @@ async function saveUserAccount(req, res, next) {
     return successResp(res, "User account saved successfully.", 200, { userAccount: newUserAccount });
 }
 
+async function getUserPurchasedCoupons(req, res, next) {
+    const userId = req.user.id;
+    const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10 if not provided
+    const offset = (page - 1) * limit;
+
+    const transaction = await sequelize.transaction();
+    try {
+        const baseQuery = `
+            FROM coupons c
+            JOIN user_coupons uc ON c.id = uc.coupon_id
+            WHERE uc.user_id = :userId AND uc.deleted_at IS NULL AND c.deleted_at IS NULL
+        `;
+
+        const [coupons, total] = await Promise.all([
+            sequelize.query(`
+                SELECT c.id, 
+                c.coupon_name, 
+                c.price, 
+                uc.id as user_coupon_id, 
+                uc.created_at AS purchase_date,
+                IF(DATE_ADD(uc.created_at, INTERVAL c.spin_days DAY) < NOW(), 'expired', 'valid') as coupon_status
+                ${baseQuery}
+                ORDER BY uc.created_at DESC
+                LIMIT :limit OFFSET :offset
+            `, {
+                replacements: { userId, limit: parseInt(limit), offset: parseInt(offset) },
+                type: Sequelize.QueryTypes.SELECT,
+                transaction
+            }),
+            sequelize.query(`
+                SELECT COUNT(*) as total
+                ${baseQuery}
+            `, {
+                replacements: { userId },
+                type: Sequelize.QueryTypes.SELECT,
+                transaction
+            })
+        ]);
+
+        const totalCount = total[0]?.total || 0;
+
+        if (!coupons || coupons.length === 0) {
+            await transaction.rollback();
+            return failureResp(res, "No purchased coupons found.", 404);
+        }
+
+        await transaction.commit();
+        return successResp(res, "Purchased coupons retrieved successfully.", 200, { 
+            coupons, 
+            pagination: { 
+                page: parseInt(page), 
+                limit: parseInt(limit), 
+                // total: totalCount, 
+                totalPages: Math.ceil(totalCount / limit) 
+            } 
+        });
+    } catch (error) {
+        await transaction.rollback();
+        return failureResp(res, "Something went wrong please try again later.", 500);
+    }
+}
 
 module.exports = {
-    getUserProfile, getUserBalance, getPaymentQrCode,saveUserAccount
+    getUserProfile, 
+    getUserBalance, 
+    getPaymentQrCode,
+    saveUserAccount, 
+    getUserPurchasedCoupons,
 };

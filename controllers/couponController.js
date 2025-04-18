@@ -5,6 +5,7 @@ const sequelize = require('../config/database');
 const Sequelize = require('sequelize');
 const UserWallet = require('../models/userWallet');
 const WalletTransactionModel = require('../models/walletTransactions');
+const SpinModel = require('../models/spins'); // Ensure the Spin model is imported
 
 
 async function getCoupons(req, res, next) {
@@ -81,7 +82,95 @@ async function buyCoupon(req, res, next) {
     return successResp(res, "Coupon purchased successfully", 200);
 }
 
+async function redeemCoupon(req, res, next) {
+    const t = await sequelize.transaction();
+    try {
+        let userId = req.user.id;
+        let userCouponId = req.body.user_coupon_id;
+
+        const results = await sequelize.query(`
+            SELECT c.id, c.coupon_name, c.max_prize_amount, c.min_prize_amount , c.spin_days, 
+            uc.created_at AS purchase_date, 
+            IF(DATE_ADD(uc.created_at, INTERVAL c.spin_days DAY) < NOW(), 1, 0) as is_coupon_expires
+            FROM coupons c
+            JOIN user_coupons uc ON c.id = uc.coupon_id
+            WHERE uc.id = :userCouponId
+            AND uc.deleted_at IS NULL
+            AND c.deleted_at IS NULL
+            LIMIT 1;
+        `, {
+            replacements: { userCouponId },
+            type: Sequelize.QueryTypes.SELECT,
+            transaction: t
+        });
+
+        if (!results || results.length == 0) {
+            await t.rollback();
+            return failureResp(res, "Coupon Not found.", 404, results);
+        }
+
+        let couponData = results[0];
+
+        if (couponData.is_coupon_expires == 1) {
+            await t.rollback();
+            return failureResp(res, "Coupon already expired.", 409, results);
+        }
+
+        let minPrize = couponData.min_prize_amount;
+        let maxPrize = couponData.max_prize_amount;
+        let prizeAmount = Math.floor(Math.random() * (maxPrize - minPrize + 1)) + minPrize;
+
+        let userWallet = await UserWallet.findOne({ where: { user_id: userId }, transaction: t });
+        if (!userWallet) {
+            await t.rollback();
+            return failureResp(res, "User wallet not found", 404);
+        }
+
+        // Save spin
+        let spinData = {
+            user_coupon_id: userCouponId,
+            prize_amount: prizeAmount,
+            created_at: new Date(),
+            updated_at: new Date()
+        };
+
+        let spinRecord = await SpinModel.create(spinData, { transaction: t });
+        if (!spinRecord) {
+            await t.rollback();
+            return failureResp(res, "Failed to save spin data", 500);
+        }
+
+        // Save wallet transaction
+        let transactionData = {
+            user_wallet_id: userWallet.id,
+            type: 'credit',
+            transaction_amount: prizeAmount,
+            description: `Coupon redeemed for coupon ID ${couponData.id}`,
+            created_at: new Date(),
+            updated_at: new Date()
+        };
+
+        let transaction = await WalletTransactionModel.create(transactionData, { transaction: t });
+        if (!transaction) {
+            await t.rollback();
+            return failureResp(res, "Transaction failed", 500);
+        }
+
+        // Update amount in user wallet
+        userWallet.avl_amount += prizeAmount;
+        await userWallet.save({ transaction: t });
+
+        await t.commit();
+        return successResp(res, "Coupon redeemed successfully", 200);
+    } catch (error) {
+        await t.rollback();
+        return failureResp(res, "An error occurred while redeeming the coupon", 500, error.message);
+    }
+}
+
 module.exports = {
     getCoupons,
-    buyCoupon
+    buyCoupon,
+    redeemCoupon
+
 }

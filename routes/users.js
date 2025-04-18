@@ -10,6 +10,7 @@ router.get('/balance', userController.getUserBalance);
 router.get('/profile', userController.getUserProfile);
 router.get('/paymentQRCode', userController.getPaymentQrCode);
 router.post('/user-accounts', userController.saveUserAccount);
+router.get('/purchased-coupons', userController.confi);
 
 module.exports = router;
  
