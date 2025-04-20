@@ -13,5 +13,7 @@ router.post('/user-accounts', userController.saveUserAccount);
 router.get('/purchased-coupons', userController.getUserPurchasedCoupons);
 router.get('/coupons-spin-details/:usercouponId', userController.getUserSpinDetails);
 
+router.patch('/:userId/transaction', userController.updateTransaction);
+router.get('/:userId/transactions', userController.getUserTransactions);
 module.exports = router;
  

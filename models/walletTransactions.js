@@ -1,7 +1,7 @@
 'use strict';
 const { DataTypes, Model } = require('sequelize');
 const sequelize = require('../config/database');
-
+const UserWallet = require('./userWallet');
 class WalletTransactions extends Model {
   /**
    * Helper method for defining associations.
@@ -29,10 +29,7 @@ WalletTransactions.init({
     type: DataTypes.BIGINT,
     allowNull: true,
     references: {
-      model: {
-        tableName: 'user_wallet',
-        // schema: 'schema',
-      },
+      model: UserWallet,
       key: 'id',
     },
     onUpdate: 'CASCADE'

@@ -206,20 +206,20 @@ async function updateTransaction(req, res) {
     }
 
     try {
-        // Find the wallet transaction using a join
-        const walletTransaction = await WalletTransactions.findOne({
-            where: { id: walletTransactionId },
+        // Find the user's wallet and include wallet transactions
+        const userWallet = await UserWallet.findOne({
+            where: { user_id: customerUserId, deleted_at: null },
             include: [
                 {
-                    model: UserWallet,
-                    as: 'wallet',
-                    where: { user_id: customerUserId, deleted_at: null },
-                    attributes: [] // Exclude wallet attributes from the result
+                    model: WalletTransactions,
+                    as: 'transactions',
+                    where: { id: walletTransactionId },
+                    attributes: ['id', 'amount', 'type', 'status', 'created_at']
                 }
             ]
         });
 
-        if (!walletTransaction) {
+        if (!userWallet || !userWallet.transactions || userWallet.transactions.length === 0) {
             return failureResp(res, "Transaction does not belong to the user.", 403);
         }
 
@@ -241,47 +241,71 @@ async function updateTransaction(req, res) {
 }
 
 async function getUserTransactions(req, res, next) {
-    const userId = req.user.id;
-    const customerUserId = req.body.user_id;
+    const customerUserId = req.params.userId;
     const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10 if not provided
     const offset = (page - 1) * limit;
 
     try {
-        // Check if the user has a wallet
-        const userWallet = await UserWallet.findOne({
-            where: { user_id: customerUserId, deleted_at: null },
-            attributes: ['id', 'avl_amount'],
-            include: [
-                {
-                    model: WalletTransactions,
-                    as: 'transactions',
-                    attributes: ['id', 'amount', 'type', 'status', 'created_at'],
-                    limit: parseInt(limit),
-                    offset: parseInt(offset),
-                    order: [['created_at', 'DESC']]
-                }
-            ]
+        const baseQuery = `
+            FROM user_wallet uw
+            LEFT JOIN wallet_transactions wt ON uw.id = wt.user_wallet_id
+            WHERE uw.user_id = :customerUserId AND uw.deleted_at IS NULL AND wt.deleted_at IS NULL
+        `;
+
+        // Query to get the total count of transactions
+        const totalCountResult = await sequelize.query(`
+            SELECT COUNT(*) AS total
+            ${baseQuery}
+        `, {
+            replacements: { customerUserId },
+            type: Sequelize.QueryTypes.SELECT
         });
 
-        if (!userWallet) {
-            return failureResp(res, "User wallet not found.", 404);
-        }
+        const totalCount = totalCountResult[0]?.total || 0;
 
-        if (!userWallet.transactions || userWallet.transactions.length === 0) {
+        if (totalCount === 0) {
             return failureResp(res, "No transactions found for the user.", 404);
         }
 
+        // Query to get the paginated transactions
+        const transactionsData = await sequelize.query(`
+            SELECT 
+                uw.id AS wallet_id,
+                uw.avl_amount,
+                wt.id AS wallet_transaction_id,
+                wt.transaction_amount,
+                wt.type,
+                wt.status,
+                wt.transaction_purpose,
+                wt.created_at
+            ${baseQuery}
+            ORDER BY wt.created_at DESC
+            LIMIT :limit OFFSET :offset
+        `, {
+            replacements: { customerUserId, limit: parseInt(limit), offset: parseInt(offset) },
+            type: Sequelize.QueryTypes.SELECT
+        });
+
+        const wallet = {
+            id: transactionsData[0]?.wallet_id || null,
+            avl_amount: transactionsData[0]?.avl_amount || 0,
+            transactions: transactionsData.map(txn => ({
+                id: txn.wallet_transaction_id,
+                amount: txn.transaction_amount,
+                type: txn.type,
+                status: txn.status,
+                transaction_purpose: txn.transaction_purpose,
+                created_at: txn.created_at
+            })).filter(txn => txn.id) // Filter out null transactions
+        };
+
         return successResp(res, "User transactions retrieved successfully.", 200, {
-            wallet: {
-                id: userWallet.id,
-                avl_amount: userWallet.avl_amount,
-                transactions: userWallet.transactions
-            },
+            wallet,
             pagination: {
                 page: parseInt(page),
                 limit: parseInt(limit),
-                total: userWallet.transactions.length,
-                totalPages: Math.ceil(userWallet.transactions.length / limit)
+                total: totalCount,
+                totalPages: Math.ceil(totalCount / limit)
             }
         });
     } catch (error) {
