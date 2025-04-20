@@ -81,7 +81,7 @@ async function buyCoupon(req, res, next) {
     if(!transaction) {
         return failureResp(res, "Transaction failed", 500);
     }
-    UserAmount.avl_amount = UserAmount.avl_amount - results.price;
+    UserAmount.avl_amount = UserAmount.avl_amount - CouponData.price;
     await UserAmount.save();
     return successResp(res, "Coupon purchased successfully", 200);
 }
