@@ -5,13 +5,14 @@ const userAccountModel = require('../models/userAccounts');
 const { successResp, failureResp } = require('../utils/response');
 const Sequelize = require('sequelize'); 
 const sequelize = require('../config/database');
+const WalletTransactions = require('../models/walletTransactions');
 
 async function getUserProfile(req, res, next) {
 
     let user = await UserModel.findOne({ where: { id: 2 }, attributes: ['username', 'first_name', 'last_name'] });
 
     if (!user) {
-        return failureResp(res, "User not found.", 200);
+        return failureResp(res, "User not found.", 404);
     }
 
     return successResp(res, "User profile data.", 200, user.toJSON());
@@ -23,16 +24,19 @@ async function getUserBalance(req, res, next) {
     const userId = req.user.id; // Assuming you have user ID in req.user after authentication
 
     try {
-        const user = await UserWallet.findOne({ where: { id: userId, deleted_at: null }, attributes: ['avl_amount'] });
-        var userDetails = {
-            user_id: userId,
-            user_name: req.user.username,
-            user_email: req.user.email,
-            avl_amount: !user ? 0 : user.avl_amount,
-        };
+        const user = await UserWallet.findOne({ where: { user_id: userId, deleted_at: null }, attributes: ['avl_amount'] });
+        
         if (!user) {
             return successResp(res, "User balance not found.", 200, { user: userDetails });
         }
+
+        let userDetails = {
+            // user_id: userId,
+            // user_name: req.user.username,
+            // user_email: req.user.email,
+            avl_amount: !user ? 0 : user.avl_amount,
+        };
+        
         return successResp(res, "User balance retrieved successfully.", 200, { user: userDetails });
     } catch (error) {
         // console.error("Error retrieving user balance:", error);
@@ -44,7 +48,7 @@ async function getPaymentQrCode(req, res, next) {
     const adminWalletId = req.body.id;
     
     const adminWallet = await AdminWallets.findOne({
-        where:  Sequelize.where(Sequelize.col('ttl_trxn_amount'), '<', Sequelize.col('max_txn_amount')), 
+        where:  Sequelize.where(Sequelize.col('ttl_txn_amount'), '<', Sequelize.col('max_trxn_amount')), 
         order: Sequelize.literal('RAND()'),
         attributes: ['qr_image']
     });
@@ -188,7 +192,101 @@ async function getUserSpinDetails(req, res, next) {
             message: err.message,
         });
     }
+}
 
+async function updateTransaction(req, res) {
+    // Apply authorization check for admin
+    const status = req.body.status;
+    const adminUser = req.user;
+    const customerUserId = req.params.id;
+    const walletTransactionId = req.body.wallet_transaction_id;
+
+    if (adminUser.role !== 'admin') {
+        return failureResp(res, "Unauthorized access.", 403);
+    }
+
+    try {
+        // Find the wallet transaction using a join
+        const walletTransaction = await WalletTransactions.findOne({
+            where: { id: walletTransactionId },
+            include: [
+                {
+                    model: UserWallet,
+                    as: 'wallet',
+                    where: { user_id: customerUserId, deleted_at: null },
+                    attributes: [] // Exclude wallet attributes from the result
+                }
+            ]
+        });
+
+        if (!walletTransaction) {
+            return failureResp(res, "Transaction does not belong to the user.", 403);
+        }
+
+        // Update the transaction status
+        const [updatedRows] = await WalletTransactions.update(
+            { status: status },
+            { where: { id: walletTransactionId } }
+        );
+
+        if (updatedRows === 0) {
+            return failureResp(res, "Failed to update transaction.", 500);
+        }
+
+        return successResp(res, "Transaction updated successfully.", 200);
+    } catch (error) {
+        return failureResp(res, "An error occurred while updating the transaction.", 500);
+    }
+   
+}
+
+async function getUserTransactions(req, res, next) {
+    const userId = req.user.id;
+    const customerUserId = req.body.user_id;
+    const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10 if not provided
+    const offset = (page - 1) * limit;
+
+    try {
+        // Check if the user has a wallet
+        const userWallet = await UserWallet.findOne({
+            where: { user_id: customerUserId, deleted_at: null },
+            attributes: ['id', 'avl_amount'],
+            include: [
+                {
+                    model: WalletTransactions,
+                    as: 'transactions',
+                    attributes: ['id', 'amount', 'type', 'status', 'created_at'],
+                    limit: parseInt(limit),
+                    offset: parseInt(offset),
+                    order: [['created_at', 'DESC']]
+                }
+            ]
+        });
+
+        if (!userWallet) {
+            return failureResp(res, "User wallet not found.", 404);
+        }
+
+        if (!userWallet.transactions || userWallet.transactions.length === 0) {
+            return failureResp(res, "No transactions found for the user.", 404);
+        }
+
+        return successResp(res, "User transactions retrieved successfully.", 200, {
+            wallet: {
+                id: userWallet.id,
+                avl_amount: userWallet.avl_amount,
+                transactions: userWallet.transactions
+            },
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total: userWallet.transactions.length,
+                totalPages: Math.ceil(userWallet.transactions.length / limit)
+            }
+        });
+    } catch (error) {
+        return failureResp(res, "An error occurred while retrieving transactions.", 500);
+    }
 }
 
 module.exports = {
@@ -197,5 +295,7 @@ module.exports = {
     getPaymentQrCode,
     saveUserAccount, 
     getUserPurchasedCoupons,
-    getUserSpinDetails
-};
+    getUserSpinDetails,
+    updateTransaction,
+    getUserTransactions
+}
