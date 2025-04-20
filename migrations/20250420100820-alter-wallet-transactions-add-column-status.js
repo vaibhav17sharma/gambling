@@ -25,4 +25,6 @@ module.exports = {
      * await queryInterface.dropTable('users');
      */
     await queryInterface.removeColumn('wallet_transactions', 'status');
+
+  }
 };
