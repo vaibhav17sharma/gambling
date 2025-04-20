@@ -4,20 +4,20 @@ const saltRounds = parseInt(process.env.SALT_ROUNDS || '10', 10);
 const UserModel = require('../models/user');
 const { successResp, failureResp } = require('../utils/response');
 const jwt = require('jsonwebtoken');
+const AuthError = require('../exceptions/AppException');
 const JWT_SECRET = process.env.JWT_SECRET;
 
 
 async function login(req, res) {
-    try {
         const{username,password}=req.body;
         const user = await UserModel.findOne({ where: { username },attributes: ['id','first_name','last_name','role','email', 'password','username'] });    
         if (!user) {
-            return failureResp(res, "User does not exist.", 409);
+            throw new AuthError("User does not exist.", 404);  // Custom error for user not found
         }
 
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return failureResp(res, "Invalid password.", 409);
+            throw new AuthError("Invalid password.", 401);  // Custom error for wrong password
         }
 
         const token = generateToken(user);
@@ -26,10 +26,7 @@ async function login(req, res) {
             message: "User logged in successfully.",
             token
         };
-    } catch (error) {
-        console.error("Error during login:", error);
-        return failureResp(res, "An error occurred during login.", 500);
-    }
+    
 }
 
 
