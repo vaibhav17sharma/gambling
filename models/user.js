@@ -50,6 +50,10 @@ User.init(
     last_name: DataTypes.STRING,
     email: DataTypes.STRING,
     password: DataTypes.STRING,
+    role: {
+      type: DataTypes.ENUM,
+      values: ['client', 'admin']
+    }
   },
   {
     sequelize,
