@@ -4,6 +4,7 @@ const AdminWallets = require('../models/adminWallets');
 const userAccountModel = require('../models/userAccounts');
 const { successResp, failureResp } = require('../utils/response');
 const Sequelize = require('sequelize'); 
+const sequelize = require('../config/database');
 
 async function getUserProfile(req, res, next) {
 
@@ -131,10 +132,70 @@ async function getUserPurchasedCoupons(req, res, next) {
     }
 }
 
+async function getUserSpinDetails(req, res, next) {
+    try {
+        const user_id = req.user.id;
+        const { usercouponId } = req.params;
+
+        const spinDetails = await sequelize.query(`
+        select uc.id as user_coupon_id, 
+        uc.coupon_id as coupon_id,
+        c.coupon_name as coupon_name,
+        c.price as coupon_price,
+        uc.user_id as user_id,
+        uc.created_at as coupon_purchase_date,
+        s.prize_amount as winning_amount, 
+        s.created_at as spin_date,
+        DATE_ADD(uc.created_at, INTERVAL c.spin_days DAY) as coupon_expiry_date
+        from user_coupons 
+        uc join spins s on uc.id=s.user_coupon_id
+        join coupons c on c.id=uc.coupon_id
+        where uc.user_id=:user_id and uc.id=:usercouponId 
+        and uc.deleted_at is null and c.deleted_at is null
+        `, 
+        {
+            replacements: { user_id, usercouponId },
+            type: Sequelize.QueryTypes.SELECT,
+        })
+
+        if(!spinDetails || spinDetails.length === 0) {
+            return failureResp(res, "No spin details found.", 404);
+        }
+        let couponDetails={
+            coupon_id: spinDetails[0].coupon_id,
+            coupon_purchase_date: spinDetails[0].coupon_purchase_date,
+            coupon_expiry_date: spinDetails[0].coupon_expiry_date,
+            coupon_name: spinDetails[0].coupon_name,
+            coupon_price: spinDetails[0].coupon_price,
+        }
+        spinDetails.forEach(spin => {
+            delete spin.coupon_id;
+            delete spin.coupon_purchase_date;
+            delete spin.coupon_expiry_date;
+            delete spin.coupon_name;
+            delete spin.coupon_price;
+        });
+        
+        return successResp(res, "Success", 200, { spinDetails,couponDetails });
+
+
+
+    }
+    catch (err) {
+        console.error("Login error:", err);
+        next(err);
+        return failureResp(res, "Something went wrong.", 500, {
+            message: err.message,
+        });
+    }
+
+}
+
 module.exports = {
     getUserProfile, 
     getUserBalance, 
     getPaymentQrCode,
     saveUserAccount, 
     getUserPurchasedCoupons,
+    getUserSpinDetails
 };
