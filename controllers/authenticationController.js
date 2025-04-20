@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 const UserService = require('../service/UserService');
 const saltRounds = parseInt(process.env.SALT_ROUNDS || '10', 10);
 const AuthError = require('../exceptions/AppException');
-
+const UserWallet = require('../models/userWallet');
 
 async function signup(req, res, next) {
     const { username, password, first_name, last_name, email } = req.body;
@@ -24,6 +24,13 @@ async function signup(req, res, next) {
     const passHash = await bcrypt.hash(password, saltRounds);
 
     user = await UserModel.create({ username, password: passHash, first_name, last_name, email });
+    // Save wallet information for the user
+    const userWallet = await UserWallet.create({ avl_amount: 0 , user_id: user.id});
+
+    if(!userWallet) {
+        //TODO: log error
+        return failureResp(res, "Failed to create user wallet.", 500);
+    }
 
     return successResp(res, "User created successfuly.", 200);
 }
