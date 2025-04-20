@@ -9,7 +9,10 @@ const SpinModel = require('../models/spins'); // Ensure the Spin model is import
 
 
 async function getCoupons(req, res, next) {
-    let coupons = await CouponModel.findAll({where:{deleted_at : null}});
+    let coupons = await CouponModel.findAll({
+        attributes: ['id', 'coupon_name', 'price' ,'spin_days'],
+        where: { deleted_at: null }
+    });
     if(!coupons) {
         return failureResp(res, "No coupons found", 404);
     }
@@ -70,6 +73,7 @@ async function buyCoupon(req, res, next) {
         admin_wallets_id: null,
         type: 'debit',
         description: `Coupon purchase for coupon ID ${couponId}`,
+        status: 'approved',
         created_at: new Date(),
         updated_at: new Date()
     };
@@ -146,6 +150,7 @@ async function redeemCoupon(req, res, next) {
             type: 'credit',
             transaction_amount: prizeAmount,
             description: `Coupon redeemed for coupon ID ${couponData.id}`,
+            status: 'approved',
             created_at: new Date(),
             updated_at: new Date()
         };
