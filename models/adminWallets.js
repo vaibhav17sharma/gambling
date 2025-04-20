@@ -22,6 +22,16 @@ AdminWallets.init({
   qr_image: {
     type: DataTypes.BLOB,
   },
+  max_trxn_amount: {
+    type: DataTypes.DOUBLE,
+    allowNull: false,
+  },
+  
+  ttl_txn_amount: {
+    type: DataTypes.DOUBLE,
+    defaultValue:0,
+    allowNull: false,
+  },
   deleted_at : {
     type : DataTypes.DATE,
   },
