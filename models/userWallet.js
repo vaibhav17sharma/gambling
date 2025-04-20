@@ -35,11 +35,11 @@ UserWallet.init({
     defaultValue : null,
   },
   created_at: {
-    allowNull: false,
+    // allowNull: false,
     type: DataTypes.DATE
   },
   updated_at: {
-    allowNull: true,
+    // allowNull: true,
     type: DataTypes.DATE
   }
 }, {
