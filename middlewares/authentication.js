@@ -17,7 +17,7 @@ async function authenticate(req, res, next) {
         }
 
         try {
-            req.user = await UserModel.findOne({ where: { id: decoded.id }, attributes: ['id','username','email','first_name','last_name','created_at'] });
+            req.user = await UserModel.findOne({ where: { id: decoded.id }, attributes: ['id','username', 'role','email','first_name','last_name','created_at'] });
             next();
         } catch (error) {
             return failureResp(res, "Failed to fetch user data", 500);

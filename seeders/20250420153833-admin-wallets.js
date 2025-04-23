@@ -18,6 +18,7 @@ module.exports = {
         ttl_txn_amount: 1000.0,
         account_number: 987654321,
         qr_image: null,
+        upi_id: "abcd@paytm",
         created_at: new Date(),
         updated_at: new Date(),
         deleted_at: null
@@ -27,6 +28,7 @@ module.exports = {
         ttl_txn_amount: 1000.0,
         account_number: 987654391,
         qr_image: null,
+        upi_id: "efgh@paytm",
         created_at: new Date(),
         updated_at: new Date(),
         deleted_at: null

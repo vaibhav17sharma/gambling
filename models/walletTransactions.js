@@ -58,6 +58,14 @@ WalletTransactions.init({
     type: DataTypes.TEXT,
     allowNull: true,
   },
+  status : {
+    type : DataTypes.ENUM('pending', 'approved'),
+    allowNull : false,
+  },
+  transaction_purpose : {
+    type: DataTypes.ENUM('wallet_topup', 'coupon_purchase', 'spin_reward'),
+    allowNull: false,
+  },
   created_at: {
     type: DataTypes.DATE
   },

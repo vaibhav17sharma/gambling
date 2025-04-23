@@ -7,7 +7,7 @@ const AuthError = require('../exceptions/AppException');
 const UserWallet = require('../models/userWallet');
 
 async function signup(req, res, next) {
-    const { username, password, first_name, last_name, email } = req.body;
+    const { username, password, first_name, last_name, email, role } = req.body;
 
     if (!username || !password) {
         return res.status(400).send('Username and password are required.');
@@ -23,7 +23,7 @@ async function signup(req, res, next) {
 
     const passHash = await bcrypt.hash(password, saltRounds);
 
-    user = await UserModel.create({ username, password: passHash, first_name, last_name, email });
+    user = await UserModel.create({ username, password: passHash, first_name, last_name, email, role });
     // Save wallet information for the user
     const userWallet = await UserWallet.create({ avl_amount: 0 , user_id: user.id});
 

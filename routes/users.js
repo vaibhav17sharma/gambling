@@ -3,9 +3,11 @@ var router = express.Router();
 
 const userModel = require('../models/user');
 const userController = require('../controllers/userController');
+const { routes } = require('../app');
 
 /* GET users listing. */
 
+router.get('/' , userController.getAllUser);
 router.get('/balance', userController.getUserBalance);
 router.get('/profile', userController.getUserProfile);
 router.get('/paymentQRCode', userController.getPaymentQrCode);
@@ -13,7 +15,7 @@ router.post('/user-accounts', userController.saveUserAccount);
 router.get('/purchased-coupons', userController.getUserPurchasedCoupons);
 router.get('/coupons-spin-details/:usercouponId', userController.getUserSpinDetails);
 
-router.patch('/:userId/transaction', userController.updateTransaction);
+router.post('/add-wallet-topup', userController.addWalletTopup);
 router.get('/:userId/transactions', userController.getUserTransactions);
 module.exports = router;
  

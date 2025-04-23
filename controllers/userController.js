@@ -50,14 +50,14 @@ async function getPaymentQrCode(req, res, next) {
     const adminWallet = await AdminWallets.findOne({
         where:  Sequelize.where(Sequelize.col('ttl_txn_amount'), '<', Sequelize.col('max_trxn_amount')), 
         order: Sequelize.literal('RAND()'),
-        attributes: ['qr_image']
+        attributes: ['id', 'upi_id']
     });
 
     if(!adminWallet) {
         return failureResp(res, "Admin wallet not found.");
     }
 
-    return successResp(res, "Payment QR Code.", 200, {qr_image : adminWallet['qr_image']});
+    return successResp(res, "Payment QR Code.", 200, {admin_wallet : adminWallet});
 }
 
 async function saveUserAccount(req, res, next) {
@@ -194,12 +194,20 @@ async function getUserSpinDetails(req, res, next) {
     }
 }
 
-async function updateTransaction(req, res) {
+async function addWalletTopup(req, res) {
     // Apply authorization check for admin
-    const status = req.body.status;
+    
     const adminUser = req.user;
-    const customerUserId = req.params.id;
-    const walletTransactionId = req.body.wallet_transaction_id;
+    const customerUserId = req.body.user_id;
+    // const walletTransactionId = req.body.wallet_transaction_id;
+    // const adminWalletId = req.body.admin_wallets_id;
+
+    const {
+        transaction_amount,
+        admin_wallets_id,
+        utr_no,
+        admin_wallet_id : adminWalletId
+    } = req.body;
 
     if (adminUser.role !== 'admin') {
         return failureResp(res, "Unauthorized access.", 403);
@@ -209,35 +217,62 @@ async function updateTransaction(req, res) {
         // Find the user's wallet and include wallet transactions
         const userWallet = await UserWallet.findOne({
             where: { user_id: customerUserId, deleted_at: null },
-            include: [
-                {
-                    model: WalletTransactions,
-                    as: 'transactions',
-                    where: { id: walletTransactionId },
-                    attributes: ['id', 'amount', 'type', 'status', 'created_at']
-                }
-            ]
+            // include: [
+            //     {
+            //         model: WalletTransactions,
+            //         as: 'transactions',
+            //         where: { id: walletTransactionId },
+            //         attributes: ['id', 'amount', 'type', 'status', 'created_at']
+            //     }
+            // ]
         });
 
-        if (!userWallet || !userWallet.transactions || userWallet.transactions.length === 0) {
-            return failureResp(res, "Transaction does not belong to the user.", 403);
+        if (!userWallet || !userWallet.length === 0) {
+            return failureResp(res, "User Wallet Not Found.", 403);
         }
 
-        // Update the transaction status
-        const [updatedRows] = await WalletTransactions.update(
-            { status: status },
-            { where: { id: walletTransactionId } }
+        if(Number(transaction_amount) <= 0 ) {
+            return failureResp(res, "Transaction amount should be greater than 0.", 403);
+        } 
+
+        let walletTransaction = await WalletTransactions.create({
+            transaction_amount: transaction_amount,
+            user_wallet_id: userWallet.id,
+            admin_wallets_id: adminWalletId,
+            utr_no,
+            type: "credit",
+            status: "approved",
+            transaction_purpose: "wallet_topup",
+            description: "wallet topup",
+        });
+ 
+        if(!walletTransaction) {
+            return failureResp(res, "Failed to create wallet transaction.", 500);
+        }
+
+        // const adminWalletUpdate = await AdminWallets.increment(
+        //     { ttl_txn_amount: transaction_amount },
+        //     { where: { id: adminWalletId } }
+        // );
+
+        // if (!adminWalletUpdate || adminWalletUpdate[0][1] === 0) {
+        //     return failureResp(res, "Failed to update admin wallet.", 500);
+        // }
+
+        const userWalletUpdate = await UserWallet.increment(
+            { avl_amount: transaction_amount },
+            { where: { id: userWallet.id } }
         );
 
-        if (updatedRows === 0) {
-            return failureResp(res, "Failed to update transaction.", 500);
+        if (!userWalletUpdate || userWalletUpdate[0][1] === 0) {
+            return failureResp(res, "Failed to update user wallet.", 500);
         }
 
-        return successResp(res, "Transaction updated successfully.", 200);
+        return successResp(res, "Transaction created successfully.", 201);
     } catch (error) {
-        return failureResp(res, "An error occurred while updating the transaction.", 500);
+        console.log(error);
+        return failureResp(res, "An error occurred while creating the transaction.", 500);
     }
-   
 }
 
 async function getUserTransactions(req, res, next) {
@@ -313,6 +348,31 @@ async function getUserTransactions(req, res, next) {
     }
 }
 
+async function getAllUser(req, res) {
+    const adminUser = req.user;
+
+    console.log(adminUser);
+    if (adminUser.role !== 'admin') {
+        return failureResp(res, "Unauthorized access.", 403);
+    }
+
+    try {
+        const users = await UserModel.findAll({
+            where: { role: { [Sequelize.Op.ne]: 'admin' } },
+            attributes: ['id', 'username', 'first_name', 'last_name', 'email']
+        });
+
+        if (!users || users.length === 0) {
+            return failureResp(res, "No non-admin users found.", 404);
+        }
+
+        return successResp(res, "Non-admin users retrieved successfully.", 200, { users });
+    } catch (error) {
+        return failureResp(res, "An error occurred while retrieving users.", 500);
+    }
+
+}
+
 module.exports = {
     getUserProfile, 
     getUserBalance, 
@@ -320,6 +380,7 @@ module.exports = {
     saveUserAccount, 
     getUserPurchasedCoupons,
     getUserSpinDetails,
-    updateTransaction,
-    getUserTransactions
+    addWalletTopup,
+    getUserTransactions,
+    getAllUser,
 }
