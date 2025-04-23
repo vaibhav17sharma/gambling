@@ -373,6 +373,59 @@ async function getAllUser(req, res) {
 
 }
 
+async function addOrUpdateAdminWallet(req, res) {
+    const adminUser = req.user;
+    if (adminUser.role !== 'admin') {
+        return failureResp(res, "Unauthorized access.", 403);
+    }
+
+    const { upi_id, max_trxn_amount, account_number } = req.body;
+
+    try {
+        const existingAdminWallet = await AdminWallets.findOne({
+            where: {
+                [Sequelize.Op.or]: [
+                    { account_number },
+                    { upi_id }
+                ],
+                deleted_at: null
+            }
+        });
+
+        
+        if (existingAdminWallet) {
+            await existingAdminWallet.update({ upi_id, max_trxn_amount, account_number });
+            const { qr_image, ...walletWithoutQrImage } = existingAdminWallet.toJSON();
+            return successResp(res, "Admin wallet updated successfully.", 200, { admin_wallet: walletWithoutQrImage });
+        } else {
+            const newAdminWallet = await AdminWallets.create({ upi_id, max_trxn_amount, account_number });
+            const { qr_image, ...walletWithoutQrImage } = newAdminWallet.toJSON();
+            return successResp(res, "Admin wallet created successfully.", 201, { admin_wallet: walletWithoutQrImage });
+        }
+    } catch (error) {
+        return failureResp(res, "An error occurred while processing the admin wallet.", 500);
+    }
+}
+
+async function deleteAdminWallet(req, res) {
+    const adminUser = req.user;
+    if (adminUser.role !== 'admin') {
+        return failureResp(res, "Unauthorized access.", 403);
+    }
+
+    const { admin_wallet_id } = req.body;
+
+    try {
+        const deletedWallet = await AdminWallets.destroy({ where: { id:admin_wallet_id } });
+        if (!deletedWallet) {
+            return failureResp(res, "Admin wallet not found.", 404);
+        }
+        return successResp(res, "Admin wallet deleted successfully.", 200);
+    } catch (error) {
+        return failureResp(res, "An error occurred while deleting the admin wallet.", 500);
+    }
+}
+
 module.exports = {
     getUserProfile, 
     getUserBalance, 
@@ -383,4 +436,6 @@ module.exports = {
     addWalletTopup,
     getUserTransactions,
     getAllUser,
+    addOrUpdateAdminWallet,
+    deleteAdminWallet
 }

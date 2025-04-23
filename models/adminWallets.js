@@ -32,6 +32,10 @@ AdminWallets.init({
     defaultValue:0,
     allowNull: false,
   },
+  upi_id: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
   deleted_at : {
     type : DataTypes.DATE,
   },
