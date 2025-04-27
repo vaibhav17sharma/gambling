@@ -173,9 +173,48 @@ async function redeemCoupon(req, res, next) {
     }
 }
 
+async function addCoupon(req, res, next) {
+    const adminUser = req.user;
+    if (adminUser.role !== 'admin') {
+        return failureResp(res, "Unauthorized access.", 403);
+    }
+
+    let couponData = req.body;
+    if(!couponData.coupon_name || !couponData.price || !couponData.spin_days || !couponData.max_prize_amount || !couponData.min_prize_amount) {
+        return failureResp(res, "Coupon name, price, spin days, max_prize_amount and min_prize_amount are required", 400);
+    }
+    
+    couponData.created_at = new Date();
+    couponData.updated_at = new Date();
+
+    let coupon = await CouponModel.create(couponData);
+    if(!coupon) {
+        return failureResp(res, "Failed to add coupon", 500);
+    }
+    return successResp(res, "Coupon added successfully", 200, coupon);
+}
+
+async function deleteCoupon(req, res, next) {
+    const adminUser = req.user;
+    if (adminUser.role !== 'admin') {
+        return failureResp(res, "Unauthorized access.", 403);
+    }
+
+    let couponId = req.params.id;
+    let coupon = await CouponModel.findOne({where:{id:couponId}});
+    if(!coupon) {
+        return failureResp(res, "Coupon not found", 404);
+    }
+    coupon.deleted_at = new Date();
+    await coupon.save();
+    return successResp(res, "Coupon deleted successfully", 200);
+}
+
 module.exports = {
     getCoupons,
     buyCoupon,
-    redeemCoupon
+    redeemCoupon,
+    addCoupon,
+    deleteCoupon
 
 }
