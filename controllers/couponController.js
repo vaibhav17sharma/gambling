@@ -10,7 +10,13 @@ const SpinModel = require('../models/spins'); // Ensure the Spin model is import
 
 async function getCoupons(req, res, next) {
     let coupons = await CouponModel.findAll({
-        attributes: ['id', 'coupon_name', 'price' ,'spin_days'],
+        attributes: [
+            'id', 
+            'coupon_name', 
+            'price', 
+            'spin_days', 
+            [Sequelize.literal('max_prize_amount'), 'daily_reward']
+        ],
         where: { deleted_at: null }
     });
     if(!coupons) {
@@ -183,7 +189,7 @@ async function addCoupon(req, res, next) {
     if(!couponData.coupon_name || !couponData.price || !couponData.spin_days || !couponData.max_prize_amount || !couponData.min_prize_amount) {
         return failureResp(res, "Coupon name, price, spin days, max_prize_amount and min_prize_amount are required", 400);
     }
-    
+
     couponData.created_at = new Date();
     couponData.updated_at = new Date();
 
