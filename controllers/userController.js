@@ -280,12 +280,20 @@ async function getUserTransactions(req, res, next) {
     const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10 if not provided
     const offset = (page - 1) * limit;
 
+    const user = req.user;
+    let baseQuery = ``;
+
+    if (user.role !== 'admin') {
+        
+    } else {
+        baseQuery = `
+        FROM user_wallet uw
+        LEFT JOIN wallet_transactions wt ON uw.id = wt.user_wallet_id
+        WHERE uw.user_id = :customerUserId AND uw.deleted_at IS NULL AND wt.deleted_at IS NULL`;
+    }
+
     try {
-        const baseQuery = `
-            FROM user_wallet uw
-            LEFT JOIN wallet_transactions wt ON uw.id = wt.user_wallet_id
-            WHERE uw.user_id = :customerUserId AND uw.deleted_at IS NULL AND wt.deleted_at IS NULL
-        `;
+    
 
         // Query to get the total count of transactions
         const totalCountResult = await sequelize.query(`
@@ -433,6 +441,23 @@ async function deleteAdminWallet(req, res) {
     }
 }
 
+async function getAdminWallets(req, res) {
+    const adminUser = req.user;
+    if (adminUser.role !== 'admin') {
+        return failureResp(res, "Unauthorized access.", 403);
+    }
+
+    try {
+        const adminWallets = await AdminWallets.findAll({ where: { deleted_at: null  }, attributes: ['id', 'upi_id', 'account_number', 'created_at', 'updated_at'] });
+        if (!adminWallets || adminWallets.length === 0) {
+            return failureResp(res, "No admin wallets found.", 404);
+        }
+        return successResp(res, "Admin wallets retrieved successfully.", 200, { admin_wallets: adminWallets });
+    } catch (error) {
+        return failureResp(res, "An error occurred while retrieving admin wallets.", 500);
+    }
+}
+
 module.exports = {
     getUserProfile, 
     getUserBalance, 
@@ -444,5 +469,6 @@ module.exports = {
     getUserTransactions,
     getAllUser,
     addOrUpdateAdminWallet,
-    deleteAdminWallet
+    deleteAdminWallet,
+    getAdminWallets
 }
