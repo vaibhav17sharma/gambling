@@ -18,7 +18,9 @@ router.get('/coupons-spin-details/:usercouponId', userController.getUserSpinDeta
 router.post('/add-wallet-topup', userController.addWalletTopup);
 router.get('/:userId/transactions', userController.getUserTransactions);
 
+router.get('/admin-wallet', userController.getAdminWallets);
 router.put('/admin-wallet', userController.addOrUpdateAdminWallet);
 router.delete('/admin-wallet', userController.deleteAdminWallet);
+
 module.exports = router;
  
