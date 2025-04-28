@@ -16,7 +16,7 @@ router.get('/purchased-coupons', userController.getUserPurchasedCoupons);
 router.get('/coupons-spin-details/:usercouponId', userController.getUserSpinDetails);
 
 router.post('/add-wallet-topup', userController.addWalletTopup);
-router.get('/:userId/transactions', userController.getUserTransactions);
+router.get('/transactions', userController.getUserTransactions);
 
 router.get('/admin-wallet', userController.getAdminWallets);
 router.put('/admin-wallet', userController.addOrUpdateAdminWallet);

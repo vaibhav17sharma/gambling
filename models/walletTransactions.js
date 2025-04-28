@@ -66,6 +66,17 @@ WalletTransactions.init({
     type: DataTypes.ENUM('wallet_topup', 'coupon_purchase', 'spin_reward'),
     allowNull: false,
   },
+  created_by_admin: {
+    type: DataTypes.BIGINT,
+    allowNull: true,
+    // references: {
+    //   model: {
+    //     tableName: 'admin_wallets',
+    //   },
+    //   key: 'id',
+    // },
+    // onUpdate: 'CASCADE'
+  },
   created_at: {
     type: DataTypes.DATE
   },

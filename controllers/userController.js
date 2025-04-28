@@ -244,6 +244,7 @@ async function addWalletTopup(req, res) {
             status: "approved",
             transaction_purpose: "wallet_topup",
             description: "wallet topup",
+            created_by_admin: adminUser.id,
         });
  
         if(!walletTransaction) {
@@ -276,20 +277,38 @@ async function addWalletTopup(req, res) {
 }
 
 async function getUserTransactions(req, res, next) {
-    const customerUserId = req.params.userId;
+    // const customerUserId = req.params.userId;
     const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10 if not provided
     const offset = (page - 1) * limit;
 
     const user = req.user;
     let baseQuery = ``;
+    let selectAttributes = ``;
 
-    if (user.role !== 'admin') {
-        
+    if (user.role == 'admin') {
+        selectAttributes = `aw.id AS wallet_id,
+                wt.id AS wallet_transaction_id,
+                wt.transaction_amount,
+                wt.type,
+                wt.status,
+                wt.transaction_purpose,
+                wt.created_at`;
+        baseQuery = `FROM admin_wallets aw
+        INNER JOIN wallet_transactions wt ON aw.id = wt.admin_wallets_id
+        WHERE wt.created_by_admin = :userId AND aw.deleted_at is null AND wt.deleted_at IS NULL`;
     } else {
-        baseQuery = `
-        FROM user_wallet uw
-        LEFT JOIN wallet_transactions wt ON uw.id = wt.user_wallet_id
-        WHERE uw.user_id = :customerUserId AND uw.deleted_at IS NULL AND wt.deleted_at IS NULL`;
+        selectAttributes = `uw.id AS wallet_id,
+        uw.avl_amount,
+        wt.id AS wallet_transaction_id,
+        wt.transaction_amount,
+        wt.type,
+        wt.status,
+        wt.transaction_purpose,
+        wt.created_at`;
+
+        baseQuery = `FROM user_wallet uw
+        INNER JOIN wallet_transactions wt ON uw.id = wt.user_wallet_id
+        WHERE uw.user_id = :userId AND uw.deleted_at IS NULL AND wt.deleted_at IS NULL`;
     }
 
     try {
@@ -300,7 +319,7 @@ async function getUserTransactions(req, res, next) {
             SELECT COUNT(*) AS total
             ${baseQuery}
         `, {
-            replacements: { customerUserId },
+            replacements: { userId: user.id },
             type: Sequelize.QueryTypes.SELECT
         });
 
@@ -313,19 +332,12 @@ async function getUserTransactions(req, res, next) {
         // Query to get the paginated transactions
         const transactionsData = await sequelize.query(`
             SELECT 
-                uw.id AS wallet_id,
-                uw.avl_amount,
-                wt.id AS wallet_transaction_id,
-                wt.transaction_amount,
-                wt.type,
-                wt.status,
-                wt.transaction_purpose,
-                wt.created_at
+                ${selectAttributes}
             ${baseQuery}
             ORDER BY wt.created_at DESC
             LIMIT :limit OFFSET :offset
         `, {
-            replacements: { customerUserId, limit: parseInt(limit), offset: parseInt(offset) },
+            replacements: { userId: user.id, limit: parseInt(limit), offset: parseInt(offset) },
             type: Sequelize.QueryTypes.SELECT
         });
 
@@ -448,7 +460,7 @@ async function getAdminWallets(req, res) {
     }
 
     try {
-        const adminWallets = await AdminWallets.findAll({ where: { deleted_at: null  }, attributes: ['id', 'upi_id', 'account_number', 'created_at', 'updated_at'] });
+        const adminWallets = await AdminWallets.findAll({ where: { deleted_at: null  }, attributes: ['id', 'upi_id', 'account_number', 'max_trxn_amount', 'created_at', 'updated_at'] });
         if (!adminWallets || adminWallets.length === 0) {
             return failureResp(res, "No admin wallets found.", 404);
         }
