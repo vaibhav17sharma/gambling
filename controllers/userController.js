@@ -9,13 +9,39 @@ const WalletTransactions = require('../models/walletTransactions');
 
 async function getUserProfile(req, res, next) {
 
-    let user = await UserModel.findOne({ where: { id: 2 }, attributes: ['username', 'first_name', 'last_name'] });
+    const userId = req.user.id; // Assuming you have user ID in req.user after authentication
+    let user = await UserModel.findOne({ where: { id:  userId}, attributes: ['username', 'first_name', 'last_name'] });
 
     if (!user) {
         return failureResp(res, "User not found.", 404);
     }
 
-    return successResp(res, "User profile data.", 200, user.toJSON());
+    const activeCoupons = await sequelize.query(`
+        SELECT 
+            c.id AS coupon_id,
+            c.coupon_name,
+            c.price,
+            uc.id AS user_coupon_id,
+            uc.created_at AS purchase_date
+        FROM coupons c
+        JOIN user_coupons uc ON c.id = uc.coupon_id
+        WHERE uc.user_id = :userId 
+          AND uc.deleted_at IS NULL 
+          AND c.deleted_at IS NULL
+          AND DATE_ADD(uc.created_at, INTERVAL c.spin_days DAY) >= NOW()
+    `, {
+        replacements: { userId: req.user.id },
+        type: sequelize.QueryTypes.SELECT
+    });
+
+    const totalActiveCoupons = activeCoupons.length;
+
+    userInfo = {
+        user : user.toJSON(),
+        active_coupons: totalActiveCoupons
+    };
+
+    return successResp(res, "User profile data.", 200, userInfo);
 }
 
 async function getUserBalance(req, res, next) {
@@ -92,9 +118,10 @@ async function getUserPurchasedCoupons(req, res, next) {
                 SELECT c.id, 
                 c.coupon_name, 
                 c.price, 
+                c.max_prize_amount as daily_reward,
                 uc.id as user_coupon_id, 
                 uc.created_at AS purchase_date,
-                IF(DATE_ADD(uc.created_at, INTERVAL c.spin_days DAY) < NOW(), 'expired', 'valid') as coupon_status
+                IF(DATE_ADD(uc.created_at, INTERVAL c.spin_days DAY) < NOW(), 'expired', 'active') as coupon_status
                 ${baseQuery}
                 ORDER BY uc.created_at DESC
                 LIMIT :limit OFFSET :offset

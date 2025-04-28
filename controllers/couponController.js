@@ -78,6 +78,7 @@ async function buyCoupon(req, res, next) {
         transaction_amount: CouponData.price,
         admin_wallets_id: null,
         type: 'debit',
+        transaction_purpose: 'coupon_purchase',
         description: `Coupon purchase for coupon ID ${couponId}`,
         status: 'approved',
         created_at: new Date(),
