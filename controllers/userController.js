@@ -351,16 +351,23 @@ async function getUserTransactions(req, res, next) {
 async function getAllUser(req, res) {
     const adminUser = req.user;
 
-    console.log(adminUser);
     if (adminUser.role !== 'admin') {
         return failureResp(res, "Unauthorized access.", 403);
     }
 
+    let username = req.query.username;
+    
+    const queryObj = {
+        where: { role: { [Sequelize.Op.ne]: 'admin' } },
+        attributes: ['id', 'username', 'first_name', 'last_name', 'email']
+    };
+
+    if(username) {
+        queryObj.where.username = { [Sequelize.Op.like]: `%${username}%` }; 
+    }
+
     try {
-        const users = await UserModel.findAll({
-            where: { role: { [Sequelize.Op.ne]: 'admin' } },
-            attributes: ['id', 'username', 'first_name', 'last_name', 'email']
-        });
+        const users = await UserModel.findAll(queryObj);
 
         if (!users || users.length === 0) {
             return failureResp(res, "No non-admin users found.", 404);
