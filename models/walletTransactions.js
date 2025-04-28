@@ -25,6 +25,10 @@ WalletTransactions.init({
     defaultValue: 0,
     allowNull: false,
   },
+  utr_no : {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   user_wallet_id: {
     type: DataTypes.BIGINT,
     allowNull: true,
