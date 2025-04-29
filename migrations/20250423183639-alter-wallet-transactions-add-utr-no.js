@@ -11,8 +11,8 @@ module.exports = {
      */
     await queryInterface.addColumn('wallet_transactions', 'utr_no', {
       type: Sequelize.STRING,
-      allowNull: false,
-      // defaultValue: 'other',
+      allowNull: true,
+      // defaultValue: null,
       after: 'status'
     });
   },
