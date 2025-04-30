@@ -100,6 +100,17 @@ async function saveUserAccount(req, res, next) {
     return successResp(res, "User account saved successfully.", 200, { userAccount: newUserAccount });
 }
 
+async function getUserAccounts(req, res, next) {
+    const userId = req.user.id;
+    getUserAccounts = await userAccountModel.findAll({ where: { user_id: userId, deleted_at: null } });
+
+    if (!getUserAccounts || getUserAccounts.length === 0) {
+        return failureResp(res, "No user accounts found.", 200);
+    }
+ 
+    return successResp(res, "User accounts retrieved successfully.", 200, { userAccounts: getUserAccounts });
+}
+
 async function getUserPurchasedCoupons(req, res, next) {
     const userId = req.user.id;
     const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10 if not provided
@@ -502,6 +513,7 @@ module.exports = {
     getUserBalance, 
     getPaymentQrCode,
     saveUserAccount, 
+    getUserAccounts,
     getUserPurchasedCoupons,
     getUserSpinDetails,
     addWalletTopup,

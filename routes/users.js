@@ -11,7 +11,8 @@ router.get('/' , userController.getAllUser);
 router.get('/balance', userController.getUserBalance);
 router.get('/profile', userController.getUserProfile);
 router.get('/paymentQRCode', userController.getPaymentQrCode);
-router.post('/user-accounts', userController.saveUserAccount);
+router.post('/account', userController.saveUserAccount);
+router.get('/account', userController.getUserAccounts);
 router.get('/purchased-coupons', userController.getUserPurchasedCoupons);
 router.get('/coupons-spin-details/:usercouponId', userController.getUserSpinDetails);
 
