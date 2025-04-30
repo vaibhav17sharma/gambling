@@ -6,6 +6,8 @@ const { successResp, failureResp } = require('../utils/response');
 const Sequelize = require('sequelize'); 
 const sequelize = require('../config/database');
 const WalletTransactions = require('../models/walletTransactions');
+const saltRounds = parseInt(process.env.SALT_ROUNDS || '10', 10);
+const bcrypt = require('bcrypt');
 
 async function getUserProfile(req, res, next) {
 
@@ -625,6 +627,39 @@ async function getAdminWallets(req, res) {
     }
 }
 
+async function userChangePassword(req, res) {
+    const userId = req.user.id;
+    const { old_password, new_password } = req.body;
+
+    if (!old_password || !new_password) {
+        return failureResp(res, "Old password and new password are required.", 404);
+    }
+
+    if(old_password === new_password) {
+        return failureResp(res, "New password should be different from old password.", 404);
+    }
+
+    try {
+        const user = await UserModel.findOne({ where: { id: userId, deleted_at: null } });
+        if (!user) {
+            return failureResp(res, "User not found.", 404);
+        }
+
+        const isPasswordValid = await bcrypt.compare(old_password, user.password);
+        if (!isPasswordValid) {
+            return failureResp(res, "Old password is incorrect.", 401);
+        }
+        
+        const passHash = await bcrypt.hash(new_password, saltRounds);
+        user.password = passHash;
+        await user.save();
+
+        return successResp(res, "Password changed successfully.", 200);
+    } catch (error) {
+        return failureResp(res, "An error occurred while changing the password.", 500);
+    }
+}
+
 module.exports = {
     getUserProfile, 
     getUserBalance, 
@@ -640,5 +675,6 @@ module.exports = {
     getAllUser,
     addOrUpdateAdminWallet,
     deleteAdminWallet,
-    getAdminWallets
+    getAdminWallets,
+    userChangePassword
 }

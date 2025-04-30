@@ -25,6 +25,8 @@ router.get('/transactions', userController.getUserTransactions);
 router.get('/admin-wallet', userController.getAdminWallets);
 router.put('/admin-wallet', userController.addOrUpdateAdminWallet);
 router.delete('/admin-wallet', userController.deleteAdminWallet);
+router.post('/change-password' , userController.userChangePassword);
+
 
 module.exports = router;
  
