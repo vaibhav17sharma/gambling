@@ -167,6 +167,67 @@ async function withdrawUserBalance(req, res, next) {
     });
 }
 
+async function approveWithdrawRequest(req, res, next) {
+    const adminUser = req.user;
+    if (adminUser.role !== 'admin') {
+        return failureResp(res, "Unauthorized access.", 403);
+    }
+
+    const { transaction_id } = req.body;
+
+    if (!transaction_id) {
+        return failureResp(res, "Transaction ID is required.", 400);
+    }
+
+    const transaction = await sequelize.transaction();
+    try {
+        const walletTransaction = await WalletTransactions.findOne({ 
+            where: { id: transaction_id, deleted_at: null }, 
+            transaction 
+        });
+
+        if (!walletTransaction) {
+            await transaction.rollback();
+            return failureResp(res, "Transaction not found.", 404);
+        }
+
+        if (walletTransaction.status === 'approved') {
+            await transaction.rollback();
+            return failureResp(res, "Transaction already approved.", 422);
+        }
+
+        // Update the transaction status to approved
+        walletTransaction.status = 'approved';
+        await walletTransaction.save({ transaction });
+
+        // Deduct the amount from the admin wallet and add it to the user's wallet
+        const userWallet = await UserWallet.findOne({ 
+            where: { id: walletTransaction.user_wallet_id, deleted_at: null }, 
+            transaction 
+        });
+        if (!userWallet) {
+            await transaction.rollback();
+            return failureResp(res, "User wallet not found.", 404);
+        }
+
+        userWallet.avl_amount -= walletTransaction.transaction_amount;
+        await userWallet.save({ transaction });
+
+        await transaction.commit();
+        return successResp(res, "Withdrawal request approved successfully.", 200, { transaction: {
+            id: walletTransaction.id,
+            amount: walletTransaction.transaction_amount,
+            status: walletTransaction.status,
+            transaction_purpose: walletTransaction.transaction_purpose,
+            created_at: walletTransaction.created_at,
+            updated_at: walletTransaction.updated_at,
+        } });
+    } catch (error) {
+        await transaction.rollback();
+        return failureResp(res, "An error occurred while approving the withdrawal request.", 500);
+    }
+}
+
 async function getUserPurchasedCoupons(req, res, next) {
     const userId = req.user.id;
     const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10 if not provided
@@ -571,6 +632,7 @@ module.exports = {
     saveUserAccount, 
     getUserAccounts,
     withdrawUserBalance,
+    approveWithdrawRequest,
     getUserPurchasedCoupons,
     getUserSpinDetails,
     addWalletTopup,

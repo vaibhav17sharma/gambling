@@ -14,6 +14,8 @@ router.get('/paymentQRCode', userController.getPaymentQrCode);
 router.post('/account', userController.saveUserAccount);
 router.get('/account', userController.getUserAccounts);
 router.post('/account/withdraw', userController.withdrawUserBalance);
+router.post('/account/withdraw/approve', userController.approveWithdrawRequest);
+
 router.get('/purchased-coupons', userController.getUserPurchasedCoupons);
 router.get('/coupons-spin-details/:usercouponId', userController.getUserSpinDetails);
 
