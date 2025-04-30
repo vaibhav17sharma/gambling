@@ -50,6 +50,18 @@ WalletTransactions.init({
     },
     onUpdate: 'CASCADE'
   },
+  client_account_id: {
+    type: DataTypes.BIGINT,
+    allowNull: true,
+    references: {
+      model: {
+        tableName: 'user_account',
+        // schema: 'schema',
+      },
+      key: 'id',
+    },
+    onUpdate: 'CASCADE'
+  },
   deleted_at : {
     type : DataTypes.DATE,
     defaultValue : null,

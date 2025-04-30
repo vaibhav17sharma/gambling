@@ -111,6 +111,62 @@ async function getUserAccounts(req, res, next) {
     return successResp(res, "User accounts retrieved successfully.", 200, { userAccounts: getUserAccounts });
 }
 
+async function withdrawUserBalance(req, res, next) {
+    const userId = req.user.id;
+    const { amount, account_number_id } = req.body;
+
+    if(req.user.role !== 'client') {
+        return failureResp(res, "Unauthorized access.", 403);
+    }
+
+    if (!amount || !account_number_id) {
+        return failureResp(res, "Amount and account number ID are required.", 400);
+    }
+
+    const userWallet = await UserWallet.findOne({ where: { user_id: userId, deleted_at: null } });
+    if (!userWallet) {
+        return failureResp(res, "User wallet not found.", 404);
+    }
+
+    if (userWallet.avl_amount < amount) {
+        return failureResp(res, "Insufficient balance.", 422);
+    }
+
+    const userAccount = await userAccountModel.findOne({ where: { id: account_number_id, user_id: userId, deleted_at: null } });
+    if (!userAccount) {
+        return failureResp(res, "Account not found.", 404);
+    }
+
+    // Deduct the amount from the user's wallet
+    // userWallet.avl_amount -= amount;
+    // await userWallet.save();
+
+    // Create a wallet transaction for the withdrawal
+    const walletTransaction = await WalletTransactions.create({
+        transaction_amount: amount,
+        user_wallet_id: userWallet.id,
+        type: "debit",
+        status: "pending",
+        transaction_purpose: "wallet_debit",
+        description: `Withdrawal to account ID: ${account_number_id}`,
+        client_user_id: account_number_id,
+        created_by_user: userId,
+    });
+
+    if (!walletTransaction) {
+        return failureResp(res, "Failed to create wallet transaction.", 500);
+    }
+
+    return successResp(res, "Withdrawal request created successful.", 200, {
+        transaction_id: walletTransaction.id,
+        amount: amount,
+        account_number_id: account_number_id,
+        type: "debit",
+        transaction_purpose: "wallet_debit",
+        status: "pending",
+    });
+}
+
 async function getUserPurchasedCoupons(req, res, next) {
     const userId = req.user.id;
     const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10 if not provided
@@ -514,6 +570,7 @@ module.exports = {
     getPaymentQrCode,
     saveUserAccount, 
     getUserAccounts,
+    withdrawUserBalance,
     getUserPurchasedCoupons,
     getUserSpinDetails,
     addWalletTopup,

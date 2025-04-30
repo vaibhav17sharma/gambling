@@ -13,6 +13,7 @@ router.get('/profile', userController.getUserProfile);
 router.get('/paymentQRCode', userController.getPaymentQrCode);
 router.post('/account', userController.saveUserAccount);
 router.get('/account', userController.getUserAccounts);
+router.post('/account/withdraw', userController.withdrawUserBalance);
 router.get('/purchased-coupons', userController.getUserPurchasedCoupons);
 router.get('/coupons-spin-details/:usercouponId', userController.getUserSpinDetails);
 
