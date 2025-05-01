@@ -52,6 +52,10 @@ Coupons.init({
     type: DataTypes.DATE,
     defaultValue: null,
   },
+  image: {
+    type: DataTypes.BLOB,
+    defaultValue: null,
+  }
 }, {
   sequelize,
   modelName: 'Coupons',
