@@ -15,7 +15,7 @@ async function getUserProfile(req, res, next) {
     let user = await UserModel.findOne({ where: { id:  userId}, attributes: ['username', 'first_name', 'last_name'] });
 
     if (!user) {
-        return failureResp(res, "User not found.", 404);
+       return successResp(res,"User not found.", 200,{ user: {} ,active_coupons: 0});
     }
 
     const activeCoupons = await sequelize.query(`
@@ -82,7 +82,7 @@ async function getPaymentQrCode(req, res, next) {
     });
 
     if(!adminWallet) {
-        return failureResp(res, "Admin wallet not found.");
+       return successResp(res,"No admin wallet found.", 200,{ admin_wallet : []});
     }
 
     return successResp(res, "Payment QR Code.", 200, {admin_wallet : adminWallet});
@@ -107,7 +107,7 @@ async function getUserAccounts(req, res, next) {
     getUserAccounts = await userAccountModel.findAll({ where: { user_id: userId, deleted_at: null } });
 
     if (!getUserAccounts || getUserAccounts.length === 0) {
-        return failureResp(res, "No user accounts found.", 200);
+        getUserAccounts=[];
     }
  
     return successResp(res, "User accounts retrieved successfully.", 200, { userAccounts: getUserAccounts });
@@ -274,7 +274,7 @@ async function getUserPurchasedCoupons(req, res, next) {
 
         if (!coupons || coupons.length === 0) {
             await transaction.rollback();
-            return failureResp(res, "No purchased coupons found.", 404);
+           return successResp(res,"No purchase coupons found.",200,{coupons:[],pagination:{page:parseInt(page),limit:parseInt(limit),total:totalCount,totalPages:Math.ceil(totalCount/limit)}});
         }
 
         await transaction.commit();
@@ -320,7 +320,7 @@ async function getUserSpinDetails(req, res, next) {
         })
 
         if(!spinDetails || spinDetails.length === 0) {
-            return failureResp(res, "No spin details found.", 404);
+            return successResp(res, "No spin details found.", 200, { spinDetails: [], couponDetails: {} });
         }
         let couponDetails={
             coupon_id: spinDetails[0].coupon_id,
@@ -487,7 +487,19 @@ async function getUserTransactions(req, res, next) {
         const totalCount = totalCountResult[0]?.total || 0;
 
         if (totalCount === 0) {
-            return failureResp(res, "No transactions found for the user.", 404);
+            return successResp(res, "No transactions found.", 200, {
+                wallet: {
+                    id: null,
+                    avl_amount: 0,
+                    transactions: []
+                },
+                pagination: {
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    total: totalCount,
+                    totalPages: Math.ceil(totalCount / limit)
+                }
+            });
         }
 
         // Query to get the paginated transactions
@@ -551,7 +563,7 @@ async function getAllUser(req, res) {
         const users = await UserModel.findAll(queryObj);
 
         if (!users || users.length === 0) {
-            return failureResp(res, "No non-admin users found.", 404);
+            users=[];
         }
 
         return successResp(res, "Non-admin users retrieved successfully.", 200, { users });
@@ -623,7 +635,7 @@ async function getAdminWallets(req, res) {
     try {
         const adminWallets = await AdminWallets.findAll({ where: { deleted_at: null  }, attributes: ['id', 'upi_id', 'account_number', 'max_trxn_amount', 'created_at', 'updated_at'] });
         if (!adminWallets || adminWallets.length === 0) {
-            return failureResp(res, "No admin wallets found.", 404);
+            adminWallets=[];
         }
         return successResp(res, "Admin wallets retrieved successfully.", 200, { admin_wallets: adminWallets });
     } catch (error) {

@@ -20,7 +20,7 @@ async function getCoupons(req, res, next) {
         where: { deleted_at: null }
     });
     if(!coupons) {
-        return failureResp(res, "No coupons found", 404);
+        coupons=[];
     }
     return successResp(res, "Coupon Data", 200,coupons);
 }
