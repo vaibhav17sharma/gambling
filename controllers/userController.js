@@ -453,7 +453,7 @@ async function getUserTransactions(req, res, next) {
         baseQuery = `FROM admin_wallets aw
         INNER JOIN wallet_transactions wt ON aw.id = wt.admin_wallets_id
         WHERE wt.created_by_admin = :userId 
-        AND transaction_purpose = :purpose
+        AND wt.transaction_purpose = :purpose
         AND aw.deleted_at is null AND wt.deleted_at IS NULL`;
     } else {
         selectAttributes = `uw.id AS wallet_id,
@@ -468,7 +468,7 @@ async function getUserTransactions(req, res, next) {
         baseQuery = `FROM user_wallet uw
         INNER JOIN wallet_transactions wt ON uw.id = wt.user_wallet_id
         WHERE uw.user_id = :userId 
-        AND transaction_purpose = :purpose
+        AND wt.transaction_purpose = :purpose
         AND uw.deleted_at IS NULL AND wt.deleted_at IS NULL`;
     }
 

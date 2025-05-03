@@ -182,23 +182,50 @@ async function redeemCoupon(req, res, next) {
 
 async function addCoupon(req, res, next) {
     const adminUser = req.user;
+    const imageFile = req.file;   // Uploaded file with form-data parameter 'image'
+    if (!imageFile) {
+        return failureResp(res, "No image file uploaded", 400);
+    }
     if (adminUser.role !== 'admin') {
         return failureResp(res, "Unauthorized access.", 403);
     }
 
     let couponData = req.body;
-    if(!couponData.coupon_name || !couponData.price || !couponData.spin_days || !couponData.max_prize_amount || !couponData.min_prize_amount) {
+    if (!couponData || Object.keys(couponData).length === 0) {
+        return failureResp(res, "No coupon data provided", 400);
+    }
+
+    if (!couponData.coupon_name || !couponData.price || !couponData.spin_days || !couponData.max_prize_amount || !couponData.min_prize_amount) {
         return failureResp(res, "Coupon name, price, spin days, max_prize_amount and min_prize_amount are required", 400);
     }
 
+
+    const fileType = imageFile.mimetype;
+    if (!fileType.startsWith('image/')) {
+        return failureResp(res, "Invalid file type. Only images are allowed.", 404);
+    }
+
+    // Check for rejected file types: PDF and video
+    if (fileType === 'application/pdf' || fileType.startsWith('video/')) {
+        return failureResp(res, "File type not allowed. Only images are accepted.", 404);
+    }
+
+    imageBase64 = imageFile.buffer.toString('base64');
+    couponData.image = imageBase64;
+
     couponData.created_at = new Date();
     couponData.updated_at = new Date();
-
-    let coupon = await CouponModel.create(couponData);
-    if(!coupon) {
-        return failureResp(res, "Failed to add coupon", 500);
+    try {
+        let coupon = await CouponModel.create(couponData);
+        if (!coupon) {
+            return failureResp(res, "Failed to add coupon", 500);
+        }
+        return successResp(res, "Coupon added successfully", 200, coupon);
     }
-    return successResp(res, "Coupon added successfully", 200, coupon);
+    catch (err) {
+        console.error("Error adding coupon:", err);
+        return failureResp(res, "Failed to add coupon", 500, err.message);
+    }
 }
 
 async function deleteCoupon(req, res, next) {
