@@ -544,7 +544,6 @@ async function getUserTransactions(req, res, next) {
             }
         });
     } catch (error) {
-        console.error(error);
         return failureResp(res, "An error occurred while retrieving transactions.", 500);
     }
 }
