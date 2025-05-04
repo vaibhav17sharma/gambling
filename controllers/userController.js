@@ -435,7 +435,7 @@ async function addWalletTopup(req, res) {
 
 async function getUserTransactions(req, res, next) {
     // const customerUserId = req.params.userId;
-    const { page = 1, limit = 10, purpose } = req.query; // Default to page 1 and limit 10 if not provided
+    const { page = 1, limit = 10, purpose='wallet_topup' } = req.query; // Default to page 1 and limit 10 if not provided
     const offset = (page - 1) * limit;
 
     const user = req.user;
@@ -453,7 +453,7 @@ async function getUserTransactions(req, res, next) {
         baseQuery = `FROM admin_wallets aw
         INNER JOIN wallet_transactions wt ON aw.id = wt.admin_wallets_id
         WHERE wt.created_by_admin = :userId 
-        AND wt.transaction_purpose = :purpose
+        AND wt.transaction_purpose in (:purpose)
         AND aw.deleted_at is null AND wt.deleted_at IS NULL`;
     } else {
         selectAttributes = `uw.id AS wallet_id,
@@ -468,7 +468,7 @@ async function getUserTransactions(req, res, next) {
         baseQuery = `FROM user_wallet uw
         INNER JOIN wallet_transactions wt ON uw.id = wt.user_wallet_id
         WHERE uw.user_id = :userId 
-        AND wt.transaction_purpose = :purpose
+        AND wt.transaction_purpose in (:purpose)
         AND uw.deleted_at IS NULL AND wt.deleted_at IS NULL`;
     }
 
@@ -480,7 +480,7 @@ async function getUserTransactions(req, res, next) {
             SELECT COUNT(*) AS total
             ${baseQuery}
         `, {
-            replacements: { userId: user.id },
+            replacements: { userId: user.id, purpose },
             type: Sequelize.QueryTypes.SELECT
         });
 
@@ -537,6 +537,7 @@ async function getUserTransactions(req, res, next) {
             }
         });
     } catch (error) {
+        console.error(error);
         return failureResp(res, "An error occurred while retrieving transactions.", 500);
     }
 }
