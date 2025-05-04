@@ -16,6 +16,8 @@ async function getUserProfile(req, res, next) {
 
     if (!user) {
        return successResp(res,"User not found.", 200,{ user: {} ,active_coupons: 0});
+    } else {
+        user = user.toJSON();
     }
 
     const activeCoupons = await sequelize.query(`
@@ -38,8 +40,15 @@ async function getUserProfile(req, res, next) {
 
     const totalActiveCoupons = activeCoupons.length;
 
+    const userWallet = await UserWallet.findOne({ where: { user_id: userId, deleted_at: null }, attributes: ['avl_amount'] });
+        
+    if(userWallet) {
+        user.balance = userWallet.avl_amount;
+    }
+   
+
     userInfo = {
-        user : user.toJSON(),
+        user ,
         active_coupons: totalActiveCoupons
     };
 
