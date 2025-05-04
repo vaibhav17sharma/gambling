@@ -42,16 +42,12 @@ async function getUserProfile(req, res, next) {
 
     const userWallet = await UserWallet.findOne({ where: { user_id: userId, deleted_at: null }, attributes: ['avl_amount'] });
         
-    if(userWallet) {
-        user.balance = userWallet.avl_amount;
-    } else {
-        user.balance = 0;
-    }
    
 
     userInfo = {
         user ,
-        active_coupons: totalActiveCoupons
+        active_coupons: totalActiveCoupons,
+        balance: userWallet ? userWallet.avl_amount : 0
     };
 
     return successResp(res, "User profile data.", 200, userInfo);
