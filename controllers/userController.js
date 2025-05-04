@@ -43,13 +43,16 @@ async function getUserProfile(req, res, next) {
 
     const userWallet = await UserWallet.findOne({ where: { user_id: userId, deleted_at: null }, attributes: ['avl_amount','id'] });
 
-    const pendingDebitSum = await WalletTransactions.sum('transaction_amount', {
-        where: {
-            user_wallet_id: userWallet.id,
-            status: 'pending',
-            transaction_purpose: 'wallet_debit'
-        }
-    });
+    let pendingDebitSum = 0;
+    if (userWallet) {
+        pendingDebitSum = await WalletTransactions.sum('transaction_amount', {
+            where: {
+                user_wallet_id: userWallet.id,
+                status: 'pending',
+                transaction_purpose: 'wallet_debit'
+            }
+        });
+    }
 
     userInfo = {
         user,
