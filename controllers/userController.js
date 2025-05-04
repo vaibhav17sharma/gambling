@@ -44,6 +44,8 @@ async function getUserProfile(req, res, next) {
         
     if(userWallet) {
         user.balance = userWallet.avl_amount;
+    } else {
+        user.balance = 0;
     }
    
 
