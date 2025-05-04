@@ -41,10 +41,24 @@ async function getUserProfile(req, res, next) {
 
     const totalActiveCoupons = activeCoupons.length;
 
-    const userWallet = await UserWallet.findOne({ where: { user_id: userId, deleted_at: null }, attributes: ['avl_amount'] });
+    const userWallet = await UserWallet.findOne({ where: { user_id: userId, deleted_at: null }, attributes: ['avl_amount','id'] });
 
+    const pendingDebitSum = await WalletTransactions.sum('transaction_amount', {
+        where: {
+            user_wallet_id: userWallet.id,
+            status: 'pending',
+            transaction_purpose: 'wallet_debit'
+        }
+    });
 
+    userInfo = {
+        user,
+        active_coupons: totalActiveCoupons,
+        balance: userWallet ? ((userWallet.avl_amount - (pendingDebitSum || 0)) > 0 ? userWallet.avl_amount - (pendingDebitSum || 0) : 0) : 0
+    };
 
+    return successResp(res, "User profile data.", 200, userInfo);
+}
     userInfo = {
         user,
         active_coupons: totalActiveCoupons,
