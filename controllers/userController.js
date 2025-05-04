@@ -1,9 +1,10 @@
+https://api.campainvestment.co/api/user/transactions?page=1&limit=10&purpose=wallet_topup,spin_reward,coupon_purchase,wallet_debit https://api.campainvestment.co/api/user/transactions?page=1&limit=10&purpose=wallet_topup,spin_reward,coupon_purchase,wallet_debit
 const UserModel = require('../models/user');
 const UserWallet = require('../models/userWallet');
 const AdminWallets = require('../models/adminWallets');
 const userAccountModel = require('../models/userAccounts');
 const { successResp, failureResp } = require('../utils/response');
-const Sequelize = require('sequelize'); 
+const Sequelize = require('sequelize');
 const sequelize = require('../config/database');
 const WalletTransactions = require('../models/walletTransactions');
 const saltRounds = parseInt(process.env.SALT_ROUNDS || '10', 10);
@@ -12,10 +13,10 @@ const bcrypt = require('bcrypt');
 async function getUserProfile(req, res, next) {
 
     const userId = req.user.id; // Assuming you have user ID in req.user after authentication
-    let user = await UserModel.findOne({ where: { id:  userId}, attributes: ['username', 'first_name', 'last_name'] });
+    let user = await UserModel.findOne({ where: { id: userId }, attributes: ['username', 'first_name', 'last_name'] });
 
     if (!user) {
-       return successResp(res,"User not found.", 200,{ user: {} ,active_coupons: 0});
+        return successResp(res, "User not found.", 200, { user: {}, active_coupons: 0 });
     } else {
         user = user.toJSON();
     }
@@ -41,11 +42,11 @@ async function getUserProfile(req, res, next) {
     const totalActiveCoupons = activeCoupons.length;
 
     const userWallet = await UserWallet.findOne({ where: { user_id: userId, deleted_at: null }, attributes: ['avl_amount'] });
-        
-   
+
+
 
     userInfo = {
-        user ,
+        user,
         active_coupons: totalActiveCoupons,
         balance: userWallet ? userWallet.avl_amount : 0
     };
@@ -60,7 +61,7 @@ async function getUserBalance(req, res, next) {
 
     try {
         const user = await UserWallet.findOne({ where: { user_id: userId, deleted_at: null }, attributes: ['avl_amount'] });
-        
+
         if (!user) {
             return successResp(res, "User balance not found.", 200, { user: userDetails });
         }
@@ -71,7 +72,7 @@ async function getUserBalance(req, res, next) {
             // user_email: req.user.email,
             avl_amount: !user ? 0 : user.avl_amount,
         };
-        
+
         return successResp(res, "User balance retrieved successfully.", 200, { user: userDetails });
     } catch (error) {
         // console.error("Error retrieving user balance:", error);
@@ -81,24 +82,24 @@ async function getUserBalance(req, res, next) {
 
 async function getPaymentQrCode(req, res, next) {
     const adminWalletId = req.body.id;
-    
+
     const adminWallet = await AdminWallets.findOne({
-        where:  Sequelize.where(Sequelize.col('ttl_txn_amount'), '<', Sequelize.col('max_trxn_amount')), 
+        where: Sequelize.where(Sequelize.col('ttl_txn_amount'), '<', Sequelize.col('max_trxn_amount')),
         order: Sequelize.literal('RAND()'),
         attributes: ['id', 'upi_id']
     });
 
-    if(!adminWallet) {
-       return successResp(res,"No admin wallet found.", 200,{ admin_wallet : []});
+    if (!adminWallet) {
+        return successResp(res, "No admin wallet found.", 200, { admin_wallet: [] });
     }
 
-    return successResp(res, "Payment QR Code.", 200, {admin_wallet : adminWallet});
+    return successResp(res, "Payment QR Code.", 200, { admin_wallet: adminWallet });
 }
 
 async function saveUserAccount(req, res, next) {
     const userId = req.user.id;
-    const{ account_number, ifsc_code,bank_name } = req.body;
-    const userAccount = await userAccountModel.findOne({ where: { user_id: userId ,account_number:account_number} });
+    const { account_number, ifsc_code, bank_name } = req.body;
+    const userAccount = await userAccountModel.findOne({ where: { user_id: userId, account_number: account_number } });
     if (userAccount) {
         return failureResp(res, "User account already exists.", 200);
     }
@@ -114,9 +115,9 @@ async function getUserAccounts(req, res, next) {
     getUserAccounts = await userAccountModel.findAll({ where: { user_id: userId, deleted_at: null } });
 
     if (!getUserAccounts || getUserAccounts.length === 0) {
-        getUserAccounts=[];
+        getUserAccounts = [];
     }
- 
+
     return successResp(res, "User accounts retrieved successfully.", 200, { userAccounts: getUserAccounts });
 }
 
@@ -124,7 +125,7 @@ async function withdrawUserBalance(req, res, next) {
     const userId = req.user.id;
     const { amount, account_number_id } = req.body;
 
-    if(req.user.role !== 'client') {
+    if (req.user.role !== 'client') {
         return failureResp(res, "Unauthorized access.", 403);
     }
 
@@ -190,9 +191,9 @@ async function approveWithdrawRequest(req, res, next) {
 
     const transaction = await sequelize.transaction();
     try {
-        const walletTransaction = await WalletTransactions.findOne({ 
-            where: { id: transaction_id, deleted_at: null }, 
-            transaction 
+        const walletTransaction = await WalletTransactions.findOne({
+            where: { id: transaction_id, deleted_at: null },
+            transaction
         });
 
         if (!walletTransaction) {
@@ -210,9 +211,9 @@ async function approveWithdrawRequest(req, res, next) {
         await walletTransaction.save({ transaction });
 
         // Deduct the amount from the admin wallet and add it to the user's wallet
-        const userWallet = await UserWallet.findOne({ 
-            where: { id: walletTransaction.user_wallet_id, deleted_at: null }, 
-            transaction 
+        const userWallet = await UserWallet.findOne({
+            where: { id: walletTransaction.user_wallet_id, deleted_at: null },
+            transaction
         });
         if (!userWallet) {
             await transaction.rollback();
@@ -223,14 +224,16 @@ async function approveWithdrawRequest(req, res, next) {
         await userWallet.save({ transaction });
 
         await transaction.commit();
-        return successResp(res, "Withdrawal request approved successfully.", 200, { transaction: {
-            id: walletTransaction.id,
-            amount: walletTransaction.transaction_amount,
-            status: walletTransaction.status,
-            transaction_purpose: walletTransaction.transaction_purpose,
-            created_at: walletTransaction.created_at,
-            updated_at: walletTransaction.updated_at,
-        } });
+        return successResp(res, "Withdrawal request approved successfully.", 200, {
+            transaction: {
+                id: walletTransaction.id,
+                amount: walletTransaction.transaction_amount,
+                status: walletTransaction.status,
+                transaction_purpose: walletTransaction.transaction_purpose,
+                created_at: walletTransaction.created_at,
+                updated_at: walletTransaction.updated_at,
+            }
+        });
     } catch (error) {
         await transaction.rollback();
         return failureResp(res, "An error occurred while approving the withdrawal request.", 500);
@@ -281,18 +284,18 @@ async function getUserPurchasedCoupons(req, res, next) {
 
         if (!coupons || coupons.length === 0) {
             await transaction.rollback();
-           return successResp(res,"No purchase coupons found.",200,{coupons:[],pagination:{page:parseInt(page),limit:parseInt(limit),total:totalCount,totalPages:Math.ceil(totalCount/limit)}});
+            return successResp(res, "No purchase coupons found.", 200, { coupons: [], pagination: { page: parseInt(page), limit: parseInt(limit), total: totalCount, totalPages: Math.ceil(totalCount / limit) } });
         }
 
         await transaction.commit();
-        return successResp(res, "Purchased coupons retrieved successfully.", 200, { 
-            coupons, 
-            pagination: { 
-                page: parseInt(page), 
-                limit: parseInt(limit), 
+        return successResp(res, "Purchased coupons retrieved successfully.", 200, {
+            coupons,
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
                 // total: totalCount, 
-                totalPages: Math.ceil(totalCount / limit) 
-            } 
+                totalPages: Math.ceil(totalCount / limit)
+            }
         });
     } catch (error) {
         await transaction.rollback();
@@ -320,16 +323,16 @@ async function getUserSpinDetails(req, res, next) {
         join coupons c on c.id=uc.coupon_id
         where uc.user_id=:user_id and uc.id=:usercouponId 
         and uc.deleted_at is null and c.deleted_at is null
-        `, 
-        {
-            replacements: { user_id, usercouponId },
-            type: Sequelize.QueryTypes.SELECT,
-        })
+        `,
+            {
+                replacements: { user_id, usercouponId },
+                type: Sequelize.QueryTypes.SELECT,
+            })
 
-        if(!spinDetails || spinDetails.length === 0) {
+        if (!spinDetails || spinDetails.length === 0) {
             return successResp(res, "No spin details found.", 200, { spinDetails: [], couponDetails: {} });
         }
-        let couponDetails={
+        let couponDetails = {
             coupon_id: spinDetails[0].coupon_id,
             coupon_purchase_date: spinDetails[0].coupon_purchase_date,
             coupon_expiry_date: spinDetails[0].coupon_expiry_date,
@@ -343,8 +346,8 @@ async function getUserSpinDetails(req, res, next) {
             delete spin.coupon_name;
             delete spin.coupon_price;
         });
-        
-        return successResp(res, "Success", 200, { spinDetails,couponDetails });
+
+        return successResp(res, "Success", 200, { spinDetails, couponDetails });
 
 
 
@@ -360,7 +363,7 @@ async function getUserSpinDetails(req, res, next) {
 
 async function addWalletTopup(req, res) {
     // Apply authorization check for admin
-    
+
     const adminUser = req.user;
     const customerUserId = req.body.user_id;
     // const walletTransactionId = req.body.wallet_transaction_id;
@@ -370,7 +373,7 @@ async function addWalletTopup(req, res) {
         transaction_amount,
         admin_wallets_id,
         utr_no,
-        admin_wallet_id : adminWalletId
+        admin_wallet_id: adminWalletId
     } = req.body;
 
     if (adminUser.role !== 'admin') {
@@ -395,9 +398,9 @@ async function addWalletTopup(req, res) {
             return failureResp(res, "User Wallet Not Found.", 403);
         }
 
-        if(Number(transaction_amount) <= 0 ) {
+        if (Number(transaction_amount) <= 0) {
             return failureResp(res, "Transaction amount should be greater than 0.", 403);
-        } 
+        }
 
         let walletTransaction = await WalletTransactions.create({
             transaction_amount: transaction_amount,
@@ -410,8 +413,8 @@ async function addWalletTopup(req, res) {
             description: "wallet topup",
             created_by_admin: adminUser.id,
         });
- 
-        if(!walletTransaction) {
+
+        if (!walletTransaction) {
             return failureResp(res, "Failed to create wallet transaction.", 500);
         }
 
@@ -442,13 +445,14 @@ async function addWalletTopup(req, res) {
 
 async function getUserTransactions(req, res, next) {
     // const customerUserId = req.params.userId;
-    const { page = 1, limit = 10, purpose='wallet_topup' } = req.query; // Default to page 1 and limit 10 if not provided
+    let { page = 1, limit = 10, purpose = 'wallet_topup' } = req.query; // Default to page 1 and limit 10 if not provided
     const offset = (page - 1) * limit;
-
+    if (typeof purpose === 'string') {
+        purpose = purpose.split(',').map(p => p.trim());
+    }
     const user = req.user;
     let baseQuery = ``;
     let selectAttributes = ``;
-
     if (user.role == 'admin') {
         selectAttributes = `aw.id AS wallet_id,
                 wt.id AS wallet_transaction_id,
@@ -463,6 +467,7 @@ async function getUserTransactions(req, res, next) {
         AND wt.transaction_purpose in (:purpose)
         AND aw.deleted_at is null AND wt.deleted_at IS NULL`;
     } else {
+
         selectAttributes = `uw.id AS wallet_id,
         uw.avl_amount,
         wt.id AS wallet_transaction_id,
@@ -480,14 +485,14 @@ async function getUserTransactions(req, res, next) {
     }
 
     try {
-    
+
 
         // Query to get the total count of transactions
         const totalCountResult = await sequelize.query(`
             SELECT COUNT(*) AS total
             ${baseQuery}
         `, {
-            replacements: { userId: user.id, purpose : purpose},
+            replacements: { userId: user.id, purpose: purpose },
             type: Sequelize.QueryTypes.SELECT
         });
 
@@ -517,7 +522,7 @@ async function getUserTransactions(req, res, next) {
             ORDER BY wt.created_at DESC
             LIMIT :limit OFFSET :offset
         `, {
-            replacements: { userId: user.id, purpose : purpose, limit: parseInt(limit), offset: parseInt(offset) },
+            replacements: { userId: user.id, purpose: purpose, limit: parseInt(limit), offset: parseInt(offset) },
             type: Sequelize.QueryTypes.SELECT
         });
 
@@ -556,21 +561,21 @@ async function getAllUser(req, res) {
     }
 
     let username = req.query.username;
-    
+
     const queryObj = {
         where: { role: { [Sequelize.Op.ne]: 'admin' } },
         attributes: ['id', 'username', 'first_name', 'last_name', 'email']
     };
 
-    if(username) {
-        queryObj.where.username = { [Sequelize.Op.like]: `%${username}%` }; 
+    if (username) {
+        queryObj.where.username = { [Sequelize.Op.like]: `%${username}%` };
     }
 
     try {
         const users = await UserModel.findAll(queryObj);
 
         if (!users || users.length === 0) {
-            users=[];
+            users = [];
         }
 
         return successResp(res, "Non-admin users retrieved successfully.", 200, { users });
@@ -599,7 +604,7 @@ async function addOrUpdateAdminWallet(req, res) {
             }
         });
 
-        
+
         if (existingAdminWallet) {
             await existingAdminWallet.update({ upi_id, max_trxn_amount, account_number });
             const { qr_image, ...walletWithoutQrImage } = existingAdminWallet.toJSON();
@@ -623,7 +628,7 @@ async function deleteAdminWallet(req, res) {
     const { admin_wallet_id } = req.body;
 
     try {
-        const deletedWallet = await AdminWallets.destroy({ where: { id:admin_wallet_id } });
+        const deletedWallet = await AdminWallets.destroy({ where: { id: admin_wallet_id } });
         if (!deletedWallet) {
             return failureResp(res, "Admin wallet not found.", 404);
         }
@@ -640,9 +645,9 @@ async function getAdminWallets(req, res) {
     }
 
     try {
-        const adminWallets = await AdminWallets.findAll({ where: { deleted_at: null  }, attributes: ['id', 'upi_id', 'account_number', 'max_trxn_amount', 'created_at', 'updated_at'] });
+        const adminWallets = await AdminWallets.findAll({ where: { deleted_at: null }, attributes: ['id', 'upi_id', 'account_number', 'max_trxn_amount', 'created_at', 'updated_at'] });
         if (!adminWallets || adminWallets.length === 0) {
-            adminWallets=[];
+            adminWallets = [];
         }
         return successResp(res, "Admin wallets retrieved successfully.", 200, { admin_wallets: adminWallets });
     } catch (error) {
@@ -658,7 +663,7 @@ async function userChangePassword(req, res) {
         return failureResp(res, "Old password and new password are required.", 404);
     }
 
-    if(old_password === new_password) {
+    if (old_password === new_password) {
         return failureResp(res, "New password should be different from old password.", 404);
     }
 
@@ -672,7 +677,7 @@ async function userChangePassword(req, res) {
         if (!isPasswordValid) {
             return failureResp(res, "Old password is incorrect.", 401);
         }
-        
+
         const passHash = await bcrypt.hash(new_password, saltRounds);
         user.password = passHash;
         await user.save();
@@ -684,10 +689,10 @@ async function userChangePassword(req, res) {
 }
 
 module.exports = {
-    getUserProfile, 
-    getUserBalance, 
+    getUserProfile,
+    getUserBalance,
     getPaymentQrCode,
-    saveUserAccount, 
+    saveUserAccount,
     getUserAccounts,
     withdrawUserBalance,
     approveWithdrawRequest,
