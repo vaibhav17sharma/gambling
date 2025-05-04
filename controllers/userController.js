@@ -487,7 +487,7 @@ async function getUserTransactions(req, res, next) {
             SELECT COUNT(*) AS total
             ${baseQuery}
         `, {
-            replacements: { userId: user.id, purpose },
+            replacements: { userId: user.id, purpose : purpose},
             type: Sequelize.QueryTypes.SELECT
         });
 
@@ -517,7 +517,7 @@ async function getUserTransactions(req, res, next) {
             ORDER BY wt.created_at DESC
             LIMIT :limit OFFSET :offset
         `, {
-            replacements: { userId: user.id, limit: parseInt(limit), offset: parseInt(offset) },
+            replacements: { userId: user.id, purpose : purpose, limit: parseInt(limit), offset: parseInt(offset) },
             type: Sequelize.QueryTypes.SELECT
         });
 
